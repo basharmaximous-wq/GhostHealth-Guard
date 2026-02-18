@@ -98,6 +98,21 @@ match github::get_pr_context(&installation_client, &owner, &name, pr_number).awa
         match github::run_privacy_audit(&context).await {
             Ok(report) => {
                 let final_message = format!("### 👻 GhostHealth Guard Privacy Report\n\n{}", report);
+                let has_violations = report.to_uppercase().contains("VIOLATION") || 
+                     report.to_uppercase().contains("CRITICAL") ||
+                     report.to_uppercase().contains("LEAK");
+
+match github::post_review(
+    &installation_client,
+    &owner,
+    &name,
+    pr_number,
+    &format!("### 👻 GhostHealth Guard Audit\n\n{}", report),
+    has_violations
+).await {
+    Ok(_) => println!("Review posted for PR #{}", pr_number),
+    Err(e) => println!("Failed to post review: {:?}", e),
+}
                 
                 // Post the actual AI findings back to GitHub
                 let _ = github::post_comment(
