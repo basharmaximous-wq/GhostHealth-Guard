@@ -90,8 +90,7 @@ async fn handle_webhook(
     if let WebhookEvent { content, .. } = event {
         if let Some(pr_event) = content.as_pull_request() {
             let pr_number = pr_event.pull_request.number;
-
-           match github::get_pr_context(&installation_client, &owner, &name, pr_number).await {
+match github::get_pr_context(&installation_client, &owner, &name, pr_number).await {
     Ok(context) => {
         println!("Auditing PR #{}...", pr_number);
 
@@ -119,7 +118,6 @@ async fn handle_webhook(
         }
     },
     Err(e) => println!("Error fetching context: {:?}", e),
-    
 }
                     }
                 }
