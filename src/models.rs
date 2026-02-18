@@ -1,11 +1,13 @@
-// src/models.rs
+use sqlx::FromRow;
+use uuid::Uuid;
+use chrono::{DateTime, Utc};
 
-#[derive(Debug)]
-pub struct PullRequestAuditContext {
-    pub title: String,
-    pub description: String,
-    pub diff: String,
-    pub repo_owner: String,
+#[derive(FromRow)]
+pub struct AuditRecord {
+    pub id: Uuid,
     pub repo_name: String,
-    pub pr_number: u64,
+    pub pr_number: i32,
+    pub status: String,
+    pub report: String,
+    pub created_at: DateTime<Utc>,
 }
