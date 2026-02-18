@@ -37,6 +37,36 @@ pub async fn post_comment(
         .await?;
     Ok(())
 }
+// src/github.rs
+
+pub async fn post_review(
+    octocrab: &octocrab::Octocrab,
+    owner: &str,
+    repo: &str,
+    pr_number: u64,
+    report: &str,
+    has_violations: bool,
+) -> anyhow::Result<()> {
+    use octocrab::params::pulls::ReviewAction;
+
+    // If the AI found a leak, we "Request Changes" to block the merge.
+    // If it's clean, we just "Comment" or "Approve".
+    let action = if has_violations {
+        ReviewAction::RequestChanges
+    } else {
+        ReviewAction::Comment
+    };
+
+    octocrab
+        .pulls(owner, repo)
+        .create_review(pr_number)
+        .body(report)
+        .event(action)
+        .send()
+        .await?;
+
+    Ok(())
+}
 pub async fn run_privacy_audit(context: &crate::models::PullRequestAuditContext) -> anyhow::Result<String> {
     let client = reqwest::Client::new();
     let api_key = std::env::var("OPENAI_API_KEY").expect("AI API Key not set");
@@ -76,4 +106,5 @@ pub async fn run_privacy_audit(context: &crate::models::PullRequestAuditContext)
         .to_string();
 
     Ok(report)
+
 }
