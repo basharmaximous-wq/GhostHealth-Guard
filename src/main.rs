@@ -20,6 +20,7 @@ use octocrab::models::webhook_events::{WebhookEvent, WebhookEventType};
 use octocrab::Octocrab;
 use sqlx::postgres::PgPool;
 use std::sync::Arc;
+use sqlx::PgPool;
 
 #[derive(Clone)]
 struct AppState {
@@ -32,8 +33,16 @@ struct AppState {
 type HmacSha256 = Hmac<Sha256>;
 
 #[tokio::main]
-async fn main() -> anyhow::Result<()> {
-    dotenvy::dotenv().ok();
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    dotenv::dotenv().ok();
+    let pool = PgPool::connect(&std::env::var("DATABASE_URL")?)
+        .await?;
+    
+    // Pass pool to axum::Router::with_state(AppState { pool })
+    // Run migrations: sqlx::migrate!("./migrations").run(&pool).await?;
+    
+    Ok(())
+}
 
     let database_url = std::env::var("DATABASE_URL")
         .context("DATABASE_URL must be set")?;
