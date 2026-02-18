@@ -1,6 +1,4 @@
-// src/main.rs
-// GhostHealth Guard - Privacy Auditor for Health Code PRs
-// Handles GitHub App webhooks for Pull Request events
+
 
 mod models;
 mod github;
