@@ -8,35 +8,15 @@ pub struct AuditRecord {
     pub id: Uuid,
     pub repo_name: String,
     pub pr_number: i32,
-    pub status: String, // e.g., "CLEAN", "VIOLATION"
+    pub status: String,
     pub report: String,
     pub created_at: DateTime<Utc>,
 }
 
-// Pro Tip: Keep your database query logic near the model
-impl AuditRecord {
-    pub async fn create(
-        pool: &sqlx::PgPool,
-        repo_name: &str,
-        pr_number: i32,
-        status: &str,
-        report: &str,
-    ) -> anyhow::Result<Self> {
-        let record = sqlx::query_as!(
-            AuditRecord,
-            r#"
-            INSERT INTO audit_logs (repo_name, pr_number, status, report)
-            VALUES ($1, $2, $3, $4)
-            RETURNING id, repo_name, pr_number, status, report, created_at
-            "#,
-            repo_name,
-            pr_number,
-            status,
-            report
-        )
-        .fetch_one(pool)
-        .await?;
-
-        Ok(record)
-    }
+// Struct for testing PHI leaks
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Patient {
+    pub name: String,
+    pub heart_rate: i32,
+    pub ssn: String,
 }
