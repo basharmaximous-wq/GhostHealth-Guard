@@ -6,7 +6,7 @@ use hmac::{Hmac, Mac};
 use sha2::Sha256;
 use subtle::ConstantTimeEq;
 use secrecy::{SecretString, ExposeSecret};
-use octocrab::models::webhook_events::{WebhookEvent, WebhookEventType};
+use octocrab::models::webhook_events::{EventInstallation, WebhookEvent, WebhookEventPayload, WebhookEventType};
 use octocrab::Octocrab;
 use sqlx::PgPool;
 use std::sync::Arc;
@@ -89,16 +89,22 @@ fn verify_signature(state: &AppState, headers: &HeaderMap, body: &Bytes) -> Resu
 async fn process_audit(state: Arc<AppState>, event: WebhookEvent) -> anyhow::Result<()> {
     let repo = event.repository.context("No repo found in webhook")?;
     
-    // Octocrab 0.38: Access payload via 'specific' enum
+    // Octocrab 0.38: payload is in WebhookEventPayload
     let pr_content = match event.specific {
-        octocrab::models::webhook_events::WebhookEventSpecific::PullRequest(payload) => payload,
+        WebhookEventPayload::PullRequest(payload) => payload,
         _ => return Err(anyhow::anyhow!("Not a PR event")),
     };
 
-    let inst_id = event.installation.context("No installation info")?.id;
+        let inst_id = match event.installation.context("No installation info")? {
+        EventInstallation::Full(installation) => installation.id,
+        EventInstallation::Minimal(installation) => installation.id,
+    };
+    
     let app_key = jsonwebtoken::EncodingKey::from_rsa_pem(&state.private_key)?;
-    let octo = Octocrab::builder().app(state.app_id.into(), app_key).build()?.installation(inst_id);
-
+   let octo = Octocrab::builder()
+        .app(state.app_id.into(), app_key)
+        .build()?
+        .installation(inst_id);
     let pr_number = pr_content.pull_request.number;
     let owner = repo.owner.clone().context("No owner info")?.login;
     let repo_name = &repo.name;
@@ -109,12 +115,13 @@ async fn process_audit(state: Arc<AppState>, event: WebhookEvent) -> anyhow::Res
     let has_violations = report.to_uppercase().contains("VIOLATION");
     let status = if has_violations { "VIOLATION" } else { "CLEAN" };
 
-    sqlx::query!(
+    sqlx::query(
         "INSERT INTO audit_logs (repo_name, pr_number, status, report) VALUES ($1, $2, $3, $4)",
-        repo_name, 
-        pr_number as i32, 
-        status, 
-        report
+     .bind(repo_name)
+    .bind(pr_number as i32)
+    .bind(status)
+    .bind(&report)
+        
     )
     .execute(&state.db)
     .await?;
