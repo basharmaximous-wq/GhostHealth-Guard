@@ -25,7 +25,8 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
 # AI & Utilities
-octocrab = "0.38"
+octocrab = { version = "0.38.0", features = ["rustls", "stream"] }
+reqwest = { version = "0.12", features = ["json"] }
 anyhow = "1.0"
 dotenvy = "0.15"
 tracing = "0.1"
