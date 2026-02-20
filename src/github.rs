@@ -1,7 +1,7 @@
 use octocrab::Octocrab;
 use serde_json::json;
 use crate::{scanner, audit};
-use crate::models::{AuditResult};
+use crate::models::AuditResult;
 
 pub async fn get_pr_diff(
     client: &Octocrab,
@@ -19,7 +19,7 @@ pub async fn process_diff(diff: &str) -> anyhow::Result<AuditResult> {
     let mut ai = audit::llm_review(diff).await?;
     issues.append(&mut ai.issues);
 
-    let risk_score = (issues.len() * 20).min(100) as u8;
+    let risk_score = (issues.len() * 15).min(100) as u8;
     let status = if risk_score > 30 { "VIOLATION" } else { "CLEAN" };
 
     Ok(AuditResult { status: status.into(), risk_score, issues })
@@ -35,7 +35,7 @@ pub async fn post_review(
 
     let body = json!({
         "body": format!(
-            "## GhostHealth Guard\nStatus: {}\nRisk Score: {}\nIssues:\n{:?}",
+            "## GhostHealth Guard Report\n\nStatus: {}\nRisk Score: {}\n\nIssues:\n{:#?}",
             result.status, result.risk_score, result.issues
         ),
         "event": if result.status == "VIOLATION" { "REQUEST_CHANGES" } else { "COMMENT" }
@@ -43,6 +43,5 @@ pub async fn post_review(
 
     let route = format!("/repos/{owner}/{repo}/pulls/{pr}/reviews");
     client.post(route, Some(&body)).await?;
-
     Ok(())
 }
