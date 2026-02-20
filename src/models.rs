@@ -1,8 +1,9 @@
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
-use chrono::{DateTime, Utc};
-use serde::{Serialize, Deserialize};
 
+#[allow(dead_code)]
 #[derive(Debug, FromRow, Serialize, Deserialize)]
 pub struct AuditRecord {
     pub id: Uuid,
@@ -14,6 +15,7 @@ pub struct AuditRecord {
 }
 
 // Struct for testing PHI leaks
+#[allow(dead_code)]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Patient {
     pub name: String,
