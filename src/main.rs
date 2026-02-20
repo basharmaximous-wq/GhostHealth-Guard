@@ -30,39 +30,28 @@ type HmacSha256 = Hmac<Sha256>;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    // 1. Initialize Logging FIRST
+    // This looks for the RUST_LOG environment variable in your .env
+    tracing_subscriber::fmt()
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .init();
+
+    // 2. Load .env variables
     dotenvy::dotenv().ok();
 
-    // 1. Setup Database
+    // 3. Setup Database (with a log to show it's starting)
     let database_url = std::env::var("DATABASE_URL").context("DATABASE_URL must be set")?;
+    tracing::info!("Connecting to database...");
     let pool = PgPool::connect(&database_url).await.context("Failed to connect to DB")?;
-    
-    // Optional: Run migrations
-    // sqlx::migrate!().run(&pool).await?;
 
-    // 2. Load Config
-    let app_id: u64 = std::env::var("GITHUB_APP_ID")
-        .context("GITHUB_APP_ID must be set")?
-        .parse()
-        .context("GITHUB_APP_ID must be a number")?;
+    // ... Load rest of config (app_id, secret, private_key) ...
 
-    let webhook_secret = std::env::var("GITHUB_WEBHOOK_SECRET").context("GITHUB_WEBHOOK_SECRET must be set")?;
-    let private_key = std::fs::read("private-key.pem").context("private-key.pem not found")?;
-
-    let state = Arc::new(AppState {
-        webhook_secret: SecretString::new(webhook_secret),
-        app_id,
-        private_key,
-        db: pool,
-    });
-
-    // 3. Router
-    let app = Router::new()
-        .route("/webhook", post(handle_webhook))
-        .with_state(state);
-
-    // 4. Server Start
+    // 4. Final Server Setup
     let addr = "0.0.0.0:3000";
-    println!("👻 GhostHealth Guard active on {}", addr);
+    
+    // Use tracing::info! instead of println!
+    tracing::info!("👻 GhostHealth Guard active on {}", addr);
+
     let listener = tokio::net::TcpListener::bind(addr).await?;
     axum::serve(listener, app).await?;
 
