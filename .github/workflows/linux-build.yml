@@ -21,7 +21,7 @@ jobs:
 
       # 2️⃣ Install Rust
       - name: Setup Rust
-        uses: rust-lang/setup-rust@v1
+        uses: actions-rust/setup-rust@v2
         with:
           rust-version: stable
 
