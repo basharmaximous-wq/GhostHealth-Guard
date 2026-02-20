@@ -1,28 +1,18 @@
-version: '3.8'
+version: "3.9"
 
 services:
   db:
-    image: postgres:16-alpine
+    image: postgres:16
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: ghosthealth
+      POSTGRES_PASSWORD: ghost
     ports:
       - "5432:5432"
 
-  qdrant:
-    image: qdrant/qdrant
-    ports:
-      - "6333:6333"
-
   app:
     build: .
-    depends_on:
-      - db
-      - qdrant
+    environment:
+      DATABASE_URL: postgres://postgres:ghost@db:5432/postgres
     ports:
       - "3000:3000"
-    environment:
-      DATABASE_URL: postgres://postgres:password@db/ghosthealth
-      OPENAI_API_KEY: your_key
-      GITHUB_WEBHOOK_SECRET: your_secret
+    depends_on:
+      - db
