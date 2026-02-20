@@ -62,4 +62,4 @@ wasmtime = "17"
 # Optional features
 [features]
 sgx = []
-fips = []
+fips = ["dep:openssl"]
