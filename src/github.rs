@@ -1,5 +1,4 @@
 use octocrab::Octocrab;
-use octocrab::models::pulls::ReviewAction; // Correct 0.38 location
 use anyhow::Context;
 use serde_json::json;
 
@@ -37,22 +36,19 @@ pub async fn post_review(
     has_violations: bool
 ) -> anyhow::Result<()> {
     let action = if has_violations {
-        ReviewAction::RequestChanges
+     let event = if has_violations {
+        "REQUEST_CHANGES"
     } else {
-        ReviewAction::Comment
+        "COMMENT"
     };
-    
-    // Use the reviews() builder in Octocrab 0.38
-    client.pulls(owner, repo)
-        .reviews()
-        .create(pr_number)
-        .body(report)
-        .event(action)
-        .send()
-        .await?;
+
+    let route = format!("/repos/{owner}/{repo}/pulls/{pr_number}/reviews");
+    let body = json!({
+        "body": report,
+        "event": event,
+    });
+
+    let _: serde_json::Value = client.post(route, Some(&body)).await?;
         
     Ok(())
 }
-
-
-
