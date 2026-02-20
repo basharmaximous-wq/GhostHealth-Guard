@@ -29,4 +29,16 @@ sqlx::query!(
     audit_id
 )
 .execute(&db)
+```
+---
+Benefits
+---
+```
+Immutable record of all audit logs
+
+Verifiable by auditors externally
+
+Prevents retroactive tampering
+
+Supports multi-tenant SaaS compliance
 .await?;``
