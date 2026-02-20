@@ -1,0 +1,17 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: ghosthealth-admission
+webhooks:
+  - name: validate.ghosthealth.com
+    clientConfig:
+      service:
+        name: ghosthealth-admission
+        namespace: default
+        path: "/validate"
+      caBundle: <YOUR_CA_BUNDLE>  # Use base64 of your CA cert
+    rules:
+      - operations: ["CREATE", "UPDATE"]
+        apiGroups: [""]
+        apiVersions: ["v1"]
+        resources: ["pods"]
