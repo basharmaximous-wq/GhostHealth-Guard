@@ -13,6 +13,7 @@ jobs:
     strategy:
       matrix:
         arch: [x86_64, aarch64]
+
     env:
       DATABASE_URL: postgres://postgres:ghost@localhost:5432/ghosthealth
       FIPS_MODE: true
@@ -22,18 +23,18 @@ jobs:
       PRIVATE_KEY_PATH: private-key.pem
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v3
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Setup QEMU for cross-arch Docker builds
+      - name: Setup QEMU for multi-arch Docker
         uses: docker/setup-qemu-action@v2
         with:
           platforms: linux/amd64,linux/arm64
 
-      - name: Install Docker Buildx
+      - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v2
 
       - name: Set target architecture
@@ -50,27 +51,26 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+          rustup target add aarch64-unknown-linux-gnu
 
       - name: Build Rust Binary
         run: |
           if [ "$ARCH" = "aarch64" ]; then
-            rustup target add aarch64-unknown-linux-gnu
             cargo build --release --target aarch64-unknown-linux-gnu --features sgx,fips
           else
             cargo build --release --features sgx,fips
           fi
 
-      - name: Build Docker Image
+      - name: Build Multi-Arch Docker Image
         run: |
           docker buildx build \
             --platform linux/amd64,linux/arm64 \
             --build-arg FIPS_MODE=true \
             --build-arg SGX_MODE=true \
-            -t ghosthealth-guard:latest \
-            .
+            -t ghosthealth-guard:latest .
 
       - name: Save Build Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ghosthealth-guard-${{ matrix.arch }}
           path: |
