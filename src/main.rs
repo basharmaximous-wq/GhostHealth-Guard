@@ -33,7 +33,7 @@ type HmacSha256 = Hmac<Sha256>;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-  tracing_subscriber::fmt()
+   tracing_subscriber::fmt()
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
         .init();
     dotenvy::dotenv().ok();
@@ -43,7 +43,7 @@ async fn main() -> anyhow::Result<()> {
 
     let app_id: u64 = std::env::var("GITHUB_APP_ID")?.parse()?;
     let webhook_secret = std::env::var("GITHUB_WEBHOOK_SECRET")?;
-   let private_key_path =
+    let private_key_path =
         std::env::var("PRIVATE_KEY_PATH").unwrap_or_else(|_| "private-key.pem".to_string());
     let private_key = std::fs::read(private_key_path)?;
 
@@ -54,7 +54,7 @@ async fn main() -> anyhow::Result<()> {
         db: pool,
     });
 
-  let app = Router::new()
+   let app = Router::new()
         .route("/webhook", post(handle_webhook))
         .with_state(state);
     let addr = "0.0.0.0:3000";
@@ -72,7 +72,7 @@ async fn handle_webhook(
         return StatusCode::UNAUTHORIZED.into_response();
     }
 
-   let event_type = headers
+    let event_type = headers
         .get("X-GitHub-Event")
         .and_then(|h| h.to_str().ok())
         .unwrap_or_default();
@@ -95,18 +95,18 @@ async fn handle_webhook(
 }
 
 fn verify_signature(state: &AppState, headers: &HeaderMap, body: &Bytes) -> Result<(), StatusCode> {
-  let sig = headers
+   let sig = headers
         .get("X-Hub-Signature-256")
         .and_then(|h| h.to_str().ok())
         .ok_or(StatusCode::UNAUTHORIZED)?;
     let remote_sha = sig
         .strip_prefix("sha256=")
         .ok_or(StatusCode::UNAUTHORIZED)?;
-   let mut mac =
+    let mut mac =
         HmacSha256::new_from_slice(state.webhook_secret.expose_secret().as_bytes()).unwrap();
     mac.update(body);
     let remote_bytes = hex::decode(remote_sha).map_err(|_| StatusCode::UNAUTHORIZED)?;
-   if mac
+    if mac
         .finalize()
         .into_bytes()
         .ct_eq(&remote_bytes[..])
@@ -121,7 +121,6 @@ fn verify_signature(state: &AppState, headers: &HeaderMap, body: &Bytes) -> Resu
 async fn process_audit(state: Arc<AppState>, event: WebhookEvent) -> anyhow::Result<()> {
     let repo = event.repository.context("No repo found in webhook")?;
 
-    
     // Octocrab 0.38: payload is in WebhookEventPayload
     let pr_content = match event.specific {
         WebhookEventPayload::PullRequest(payload) => payload,
@@ -133,7 +132,7 @@ async fn process_audit(state: Arc<AppState>, event: WebhookEvent) -> anyhow::Res
         EventInstallation::Minimal(installation) => installation.id,
     };
     let app_key = jsonwebtoken::EncodingKey::from_rsa_pem(&state.private_key)?;
-       let octo = Octocrab::builder()
+    let octo = Octocrab::builder()
         .app(state.app_id.into(), app_key)
         .build()?
         .installation(inst_id);
@@ -143,14 +142,14 @@ async fn process_audit(state: Arc<AppState>, event: WebhookEvent) -> anyhow::Res
 
     let diff = github::get_pr_context(&octo, &owner, repo_name, pr_number).await?;
     let report = github::run_privacy_audit(&diff).await?;
-    
+
     let has_violations = report.to_uppercase().contains("VIOLATION");
     let status = if has_violations { "VIOLATION" } else { "CLEAN" };
 
     sqlx::query(
         "INSERT INTO audit_logs (repo_name, pr_number, status, report) VALUES ($1, $2, $3, $4)",
- )
-    .bind(repo_name)
+   )
+        .bind(repo_name)
     .bind(pr_number as i32)
     .bind(status)
     .bind(&report)
