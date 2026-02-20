@@ -1,8 +1,13 @@
-use octocrab::Octocrab;
 use anyhow::Context;
+use octocrab::Octocrab;
 use serde_json::json;
 
-pub async fn get_pr_context(client: &Octocrab, owner: &str, repo: &str, pr_number: u64) -> anyhow::Result<String> {
+pub async fn get_pr_context(
+    client: &Octocrab,
+    owner: &str,
+    repo: &str,
+    pr_number: u64,
+) -> anyhow::Result<String> {
     let diff = client.pulls(owner, repo).get_diff(pr_number).await?;
     Ok(diff)
 }
@@ -24,19 +29,21 @@ pub async fn run_privacy_audit(diff: &str) -> anyhow::Result<String> {
         .await?;
 
     let json_res: serde_json::Value = response.json().await?;
-    Ok(json_res["choices"][0]["message"]["content"].as_str().unwrap_or("Error").to_string())
+    Ok(json_res["choices"][0]["message"]["content"]
+        .as_str()
+        .unwrap_or("Error")
+        .to_string())
 }
 
 pub async fn post_review(
-    client: &Octocrab, 
-    owner: &str, 
-    repo: &str, 
-    pr_number: u64, 
-    report: &str, 
-    has_violations: bool
+    client: &Octocrab,
+    owner: &str,
+    repo: &str,
+    pr_number: u64,
+    report: &str,
+    has_violations: bool,
 ) -> anyhow::Result<()> {
-    let action = if has_violations {
-     let event = if has_violations {
+    let event = if has_violations {
         "REQUEST_CHANGES"
     } else {
         "COMMENT"
@@ -49,6 +56,6 @@ pub async fn post_review(
     });
 
     let _: serde_json::Value = client.post(route, Some(&body)).await?;
-        
+
     Ok(())
 }
