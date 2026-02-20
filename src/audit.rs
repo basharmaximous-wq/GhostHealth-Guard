@@ -1,4 +1,3 @@
-# Structured LLM JSON Output
 use anyhow::Context;
 use serde_json::json;
 use crate::models::AuditResult;
@@ -15,12 +14,9 @@ pub async fn llm_review(diff: &str) -> anyhow::Result<AuditResult> {
             "messages": [
                 {
                     "role": "system",
-                    "content": "Return JSON: {status: CLEAN|VIOLATION, risk_score: 0-100, issues:[{category,severity,message}]}"
+                    "content": "Return strict JSON: {status: CLEAN|VIOLATION, risk_score: 0-100, issues:[{category,severity,message}]}"
                 },
-                {
-                    "role": "user",
-                    "content": diff
-                }
+                { "role": "user", "content": diff }
             ]
         }))
         .send()
@@ -30,7 +26,7 @@ pub async fn llm_review(diff: &str) -> anyhow::Result<AuditResult> {
 
     let content = response["choices"][0]["message"]["content"]
         .as_str()
-        .context("No content")?;
+        .context("No content returned")?;
 
     Ok(serde_json::from_str(content)?)
 }
