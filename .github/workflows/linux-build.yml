@@ -4,74 +4,30 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
 
 jobs:
   build:
-    name: Build GhostHealth Guard (x86_64 & aarch64)
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        arch: [x86_64, aarch64]
-
-    env:
-      DATABASE_URL: postgres://postgres:ghost@localhost:5432/ghosthealth
-      FIPS_MODE: true
-      SGX_MODE: true
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      GITHUB_APP_ID: ${{ secrets.GITHUB_APP_ID }}
-      PRIVATE_KEY_PATH: private-key.pem
+        target: [x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu]
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Setup QEMU for multi-arch Docker
-        uses: docker/setup-qemu-action@v2
+        uses: actions-rs/toolchain@v1
         with:
-          platforms: linux/amd64,linux/arm64
+          toolchain: stable
+          override: true
+          components: rustfmt, clippy
 
-      - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@v2
+      - name: Install cross
+        run: cargo install cross
 
-      - name: Set target architecture
-        run: |
-          echo "ARCH=${{ matrix.arch }}" >> $GITHUB_ENV
-          if [ "$ARCH" = "aarch64" ]; then
-            export TARGET="aarch64-unknown-linux-gnu"
-          else
-            export TARGET="x86_64-unknown-linux-gnu"
-          fi
+      - name: Build project using cross
+        run: cross build --release --target ${{ matrix.target }}
 
-      - name: Install cross toolchain (aarch64)
-        if: matrix.arch == 'aarch64'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
-          rustup target add aarch64-unknown-linux-gnu
-
-      - name: Build Rust Binary
-        run: |
-          if [ "$ARCH" = "aarch64" ]; then
-            cargo build --release --target aarch64-unknown-linux-gnu --features sgx,fips
-          else
-            cargo build --release --features sgx,fips
-          fi
-
-      - name: Build Multi-Arch Docker Image
-        run: |
-          docker buildx build \
-            --platform linux/amd64,linux/arm64 \
-            --build-arg FIPS_MODE=true \
-            --build-arg SGX_MODE=true \
-            -t ghosthealth-guard:latest .
-
-      - name: Save Build Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: ghosthealth-guard-${{ matrix.arch }}
-          path: |
-            target/release/ghosthealth-guard
+      - name: List binaries
+        run: ls -lh target/${{ matrix.target }}/release
