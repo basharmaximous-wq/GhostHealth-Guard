@@ -2,32 +2,51 @@ name: Linux Multi-Arch Build
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   pull_request:
 
 jobs:
   build:
+    name: Build x86_64 and aarch64
     runs-on: ubuntu-latest
     strategy:
       matrix:
         target: [x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu]
 
     steps:
+      # 1️⃣ Checkout code
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
+      # 2️⃣ Install Rust
+      - name: Setup Rust
+        uses: actions-rust/setup-rust@v2
         with:
-          toolchain: stable
-          override: true
-          components: rustfmt, clippy
+          rust-version: stable
 
-      - name: Install cross
-        run: cargo install cross
+      # 3️⃣ Install OpenSSL dev packages & pkg-config
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libssl-dev pkg-config curl build-essential gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
 
-      - name: Build project using cross
-        run: cross build --release --target ${{ matrix.target }}
+      # 4️⃣ Set OpenSSL environment variables
+      - name: Set OpenSSL environment
+        run: |
+          echo "OPENSSL_DIR=/usr" >> $GITHUB_ENV
+          echo "OPENSSL_LIB_DIR=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
+          echo "OPENSSL_INCLUDE_DIR=/usr/include" >> $GITHUB_ENV
 
-      - name: List binaries
-        run: ls -lh target/${{ matrix.target }}/release
+      # 5️⃣ Configure cross-compilation for aarch64
+      - name: Configure cross-compilation
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          rustup target add aarch64-unknown-linux-gnu
+          export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
+          echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
+
+      # 6️⃣ Build the project
+      - name: Build Rust project
+        run: |
+          cargo build --release --target ${{ matrix.target }}
