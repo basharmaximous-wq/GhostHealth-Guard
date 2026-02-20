@@ -74,5 +74,75 @@ Deploy: Run the binary (cargo run --release) or deploy via Docker.
 Auto-Fixing: Generating "Suggested Changes" that the developer can accept with one click.
 
 IDE Extension: Moving the feedback from the PR to the code editor (VS Code).
+# GhostHealth Guard
 
-SOC2 Compliance Export: One-click generation of audit logs for official compliance certification.
+GhostHealth Guard is a **full-stack compliance infrastructure platform** for health-tech Rust applications. It enforces **HIPAA, GDPR, and SOC2 Type II compliance**, integrates with **GitHub PRs**, and uses **SGX, FIPS, WASM sandboxing, ZK-proof audit chains**, and **blockchain notarization**.
+
+---
+
+## Features
+
+- Confidential computing via **SGX enclaves**
+- FIPS-validated cryptography enforcement
+- Procedural macros for `#[Sensitive]` data
+- Zero-trust logging enforcement
+- Continuous audit chain with **ZK proof**
+- Blockchain notarization for immutable audit records
+- Multi-tenant SaaS ready
+- Kubernetes **Admission Controller** mode
+- Automated remediation PR generation
+- Real-time ML anomaly detection on audit graph
+- SOC2 Type II export (PDF)
+- Linux multi-arch builds: x86_64 + aarch64
+- WASM sandbox for in-cluster code scanning
+
+---
+
+## Quick Start
+
+### Build
+
+```bash
+# Linux x86_64
+cargo build --release --features sgx,fips
+
+# Linux aarch64
+rustup target add aarch64-unknown-linux-gnu
+cargo build --release --target aarch64-unknown-linux-gnu --features sgx,fips
+```
+---
+Docker
+---
+```
+docker buildx build --platform linux/amd64,linux/arm64 \
+  --build-arg FIPS_MODE=true \
+  --build-arg SGX_MODE=true \
+  -t ghosthealth-guard:latest .
+```
+---
+Kubernetes Admission Controller
+---
+```
+kubectl apply -f k8s/deployment.yaml
+kubectl apply -f k8s/service.yaml
+kubectl apply -f k8s/admission-webhook.yaml
+```
+---
+Run Locally
+---
+```
+cargo run --release
+```
+---
+Environment Variables
+---
+```
+| Variable           | Description                         |
+| ------------------ | ----------------------------------- |
+| `DATABASE_URL`     | Postgres database connection string |
+| `OPENAI_API_KEY`   | API key for AI privacy audit        |
+| `GITHUB_APP_ID`    | GitHub App ID                       |
+| `PRIVATE_KEY_PATH` | Path to private key for GitHub App  |
+| `FIPS_MODE`        | Enable FIPS cryptography            |
+| `SGX_MODE`         | Enable SGX enclave mode             |
+```
