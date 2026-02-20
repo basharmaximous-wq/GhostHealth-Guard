@@ -1,0 +1,6 @@
+rules:
+  - id: no-phi-logging
+    pattern: println!($X)
+    message: "Possible PHI logging"
+    severity: ERROR
+    languages: [rust]
