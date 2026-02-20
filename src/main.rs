@@ -26,8 +26,8 @@ struct AppState {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    dotenvy::dotenv().ok();
-    tracing_subscriber::fmt().init();
+    fips::enable_fips();
+    fips::assert_fips_algorithm("AES-256-GCM");
 
     let db = PgPool::connect(&std::env::var("DATABASE_URL")?).await?;
 
