@@ -1,6 +1,6 @@
+use crate::models::AuditResult;
 use anyhow::Context;
 use serde_json::json;
-use crate::models::AuditResult;
 
 pub async fn llm_review(diff: &str) -> anyhow::Result<AuditResult> {
     let key = std::env::var("OPENAI_API_KEY")?;

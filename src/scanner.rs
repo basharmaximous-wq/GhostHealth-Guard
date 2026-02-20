@@ -1,7 +1,7 @@
-# Deterministic Engine + Semgrep
+// Deterministic Engine + Semgrep
+use crate::models::Issue;
 use regex::Regex;
 use std::process::Command;
-use crate::models::Issue;
 
 pub fn deterministic_scan(diff: &str) -> Vec<Issue> {
     let mut issues = vec![];

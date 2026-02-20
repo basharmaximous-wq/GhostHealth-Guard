@@ -12,12 +12,12 @@ pub fn enable_fips() {
 }
 
 // Example algorithm enforcement
-pub fn assert_fips_algorithm(algo: &str) {
+pub fn assert_fips_algorithm(_algo: &str) {
     #[cfg(feature = "fips")]
     {
-        match algo {
+        match _algo {
             "AES-256-GCM" | "SHA-256" | "SHA-384" => {}
-            _ => panic!("❌ Non-FIPS approved algorithm: {}", algo),
+            _ => panic!("❌ Non-FIPS approved algorithm: {}", _algo),
         }
     }
 }

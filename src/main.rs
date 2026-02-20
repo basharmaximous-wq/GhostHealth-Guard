@@ -1,18 +1,26 @@
-mod github;
-mod scanner;
 mod audit;
+mod fips;
+mod github;
 mod models;
+mod scanner;
 
-use axum::{Router, routing::post, extract::State, body::Bytes, http::{HeaderMap, StatusCode}, response::IntoResponse};
-use secrecy::{SecretString, ExposeSecret};
+use anyhow::Context;
+use axum::{
+    body::Bytes,
+    extract::State,
+    http::{HeaderMap, StatusCode},
+    response::IntoResponse,
+    routing::post,
+    Router,
+};
 use hmac::{Hmac, Mac};
+use jsonwebtoken::EncodingKey;
+use octocrab::{models::webhook_events::*, Octocrab};
+use secrecy::{ExposeSecret, SecretString};
 use sha2::Sha256;
-use subtle::ConstantTimeEq;
 use sqlx::PgPool;
 use std::sync::Arc;
-use octocrab::{Octocrab, models::webhook_events::*};
-use jsonwebtoken::{EncodingKey, Header};
-use anyhow::Context;
+use subtle::ConstantTimeEq;
 
 type HmacSha256 = Hmac<Sha256>;
 
@@ -38,7 +46,9 @@ async fn main() -> anyhow::Result<()> {
         db,
     });
 
-    let app = Router::new().route("/webhook", post(handle)).with_state(state);
+    let app = Router::new()
+        .route("/webhook", post(handle))
+        .with_state(state);
 
     axum::serve(tokio::net::TcpListener::bind("0.0.0.0:3000").await?, app).await?;
     Ok(())
@@ -49,12 +59,12 @@ async fn handle(
     headers: HeaderMap,
     body: Bytes,
 ) -> impl IntoResponse {
-
     if verify(&state, &headers, &body).is_err() {
         return StatusCode::UNAUTHORIZED;
     }
 
-    let event_type = headers.get("X-GitHub-Event")
+    let event_type = headers
+        .get("X-GitHub-Event")
         .and_then(|h| h.to_str().ok())
         .unwrap_or("");
 
@@ -76,7 +86,6 @@ async fn handle(
 }
 
 async fn process_pr(state: Arc<AppState>, event: WebhookEvent) -> anyhow::Result<()> {
-
     let repo = event.repository.context("No repo")?;
     let pr_payload = match event.specific {
         WebhookEventPayload::PullRequest(p) => p,
@@ -120,7 +129,8 @@ fn verify(state: &AppState, headers: &HeaderMap, body: &Bytes) -> Result<(), ()>
     let sig = sig.to_str().map_err(|_| ())?;
     let remote = sig.strip_prefix("sha256=").ok_or(())?;
 
-    let mut mac = HmacSha256::new_from_slice(state.webhook_secret.expose_secret().as_bytes()).unwrap();
+    let mut mac =
+        HmacSha256::new_from_slice(state.webhook_secret.expose_secret().as_bytes()).unwrap();
     mac.update(body);
     let local = mac.finalize().into_bytes();
 
