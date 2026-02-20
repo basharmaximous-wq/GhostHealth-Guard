@@ -40,6 +40,9 @@ walkdir = "2"
 
 # Vector DB / ML
 qdrant-client = "1.6"
+linfa = "0.7"
+ndarray = "0.15"
+
 
 # PDF / SOC2 export
 printpdf = "0.7"
