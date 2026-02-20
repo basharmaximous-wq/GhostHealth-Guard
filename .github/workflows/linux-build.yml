@@ -8,44 +8,34 @@ on:
 
 jobs:
   build:
-    name: Build x86_64 and aarch64
     runs-on: ubuntu-latest
     strategy:
       matrix:
         target: [x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu]
-
+    env:
+      OPENSSL_DIR: /usr/lib/ssl
     steps:
-      # 1️⃣ Checkout code
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      # 2️⃣ Install Rust
-      - name: Setup Rust
-        uses: actions-rust/setup-rust@v2
+      - name: Set up Rust
+        uses: actions-rust/setup-rust@v1
         with:
-          rust-version: stable
+          rust-toolchain: stable
 
-      # 3️⃣ Install OpenSSL dev packages & pkg-config
-      - name: Install system dependencies
+      - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libssl-dev pkg-config curl build-essential gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+          sudo apt-get install -y pkg-config libssl-dev curl build-essential
 
-      # 4️⃣ Set OpenSSL environment variables
-      - name: Set OpenSSL environment
-        run: |
-          echo "OPENSSL_DIR=/usr" >> $GITHUB_ENV
-          echo "OPENSSL_LIB_DIR=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
-          echo "OPENSSL_INCLUDE_DIR=/usr/include" >> $GITHUB_ENV
+      - name: Add target
+        run: rustup target add ${{ matrix.target }}
 
-      # 5️⃣ Configure cross-compilation for aarch64
-      - name: Configure cross-compilation
-        if: matrix.target == 'aarch64-unknown-linux-gnu'
-        run: |
-          rustup target add aarch64-unknown-linux-gnu
-          echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
+      - name: Build project
+        run: cargo build --release --target ${{ matrix.target }}
 
-      # 6️⃣ Build the project
-      - name: Build Rust project
-        run: |
-          cargo build --release --target ${{ matrix.target }}
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ghosthealth-guard-${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/
