@@ -44,3 +44,31 @@ GhostHealth Guard is a **full-stack compliance infrastructure platform** for Rus
                       | - Prevent non-compliant    |
                       |   pods at runtime          |
                       +----------------------------+
+```
+---
+Key Components
+---
+
+Axum Web Server – Receives GitHub webhook events
+
+Octocrab – GitHub API integration
+
+SQL Database (PostgreSQL) – Stores audit logs with hash chain
+
+Vector DB (Qdrant/LanceDB) – Repository-wide context & PHI tracking
+
+ZK-Proof Generator – Ensures tamper-proof audit chain
+
+Blockchain Notary – Optional Ethereum transaction to notarize audits
+
+Kubernetes Admission Controller – Rejects pods with high compliance risk
+
+WASM Sandbox – In-cluster scanning for untrusted code
+---
+Multi-Tenant SaaS Support
+---
+tenants table in PostgreSQL stores per-tenant API keys
+
+Audit logs are linked to tenants
+
+Dashboard shows compliance metrics per tenant
