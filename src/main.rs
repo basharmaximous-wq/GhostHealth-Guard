@@ -1,8 +1,8 @@
 mod models;
 mod github;
 
-use ax_body::Bytes;
 use axum::{
+    body::Bytes,
     extract::State,
     http::{HeaderMap, StatusCode},
     routing::post,
@@ -18,7 +18,6 @@ use sqlx::PgPool;
 use std::sync::Arc;
 use anyhow::Context;
 
-// 1. App State - The "Memory" of your bot
 #[derive(Clone)]
 pub struct AppState {
     webhook_secret: SecretString,
@@ -31,26 +30,29 @@ type HmacSha256 = Hmac<Sha256>;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    // A. INITIALIZE LOGGING (The Sentinel's Eyes)
+    // 1. Initialize Logging (Sentinel Eyes)
     tracing_subscriber::fmt()
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
         .init();
 
-    // B. LOAD ENVIRONMENT
+    // 2. Load .env
     dotenvy::dotenv().ok();
-    tracing::info!("Initializing GhostHealth Guard...");
 
-    // C. SETUP DATABASE
+    // 3. Setup Database
     let database_url = std::env::var("DATABASE_URL").context("DATABASE_URL must be set")?;
-    let pool = PgPool::connect(&database_url)
-        .await
-        .context("Failed to connect to Postgres")?;
+    tracing::info!("Connecting to database...");
+    let pool = PgPool::connect(&database_url).await.context("Failed to connect to DB")?;
+
+    // 4. Load rest of config
+    let app_id: u64 = std::env::var("GITHUB_APP_ID")
+        .context("GITHUB_APP_ID must be set")?
+        .parse()
+        .context("GITHUB_APP_ID must be a number")?;
+
+    let webhook_secret = std::env::var("GITHUB_WEBHOOK_SECRET").context("GITHUB_WEBHOOK_SECRET must be set")?;
     
-    // D. LOAD GITHUB CONFIG
-    let app_id: u64 = std::env::var("GITHUB_APP_ID")?.parse()?;
-    let webhook_secret = std::env::var("GITHUB_WEBHOOK_SECRET")?;
-    let key_path = std::env::var("PRIVATE_KEY_PATH").unwrap_or_else(|_| "private-key.pem".to_string());
-    let private_key = std::fs::read(key_path).context("Could not read private-key.pem")?;
+    let private_key_path = std::env::var("PRIVATE_KEY_PATH").unwrap_or_else(|_| "private-key.pem".to_string());
+    let private_key = std::fs::read(private_key_path).context("private-key.pem not found")?;
 
     let state = Arc::new(AppState {
         webhook_secret: SecretString::new(webhook_secret),
@@ -59,56 +61,56 @@ async fn main() -> anyhow::Result<()> {
         db: pool,
     });
 
-    // E. DEFINE ROUTES
+    // 5. Final Server Setup
     let app = Router::new()
         .route("/webhook", post(handle_webhook))
         .with_state(state);
 
-    // F. START SERVER
-    let port = std::env::var("PORT").unwrap_or_else(|_| "3000".to_string());
-    let addr = format!("0.0.0.0:{}", port);
-    
-    tracing::info!("🚀 GhostHealth Guard active on {}", addr);
-    let listener = tokio::net::TcpListener::bind(&addr).await?;
+    let addr = "0.0.0.0:3000";
+    tracing::info!("👻 GhostHealth Guard active on {}", addr);
+
+    let listener = tokio::net::TcpListener::bind(addr).await?;
     axum::serve(listener, app).await?;
 
     Ok(())
 }
-
-// --- WEBHOOK HANDLER ---
 
 async fn handle_webhook(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     body: Bytes,
 ) -> impl IntoResponse {
-    // 1. Security Check
+    // SECURITY: Verify signature
     if let Err(err_resp) = verify_signature(&state, &headers, &body) {
-        tracing::warn!("Unauthorized webhook attempt blocked.");
+        tracing::warn!("Blocked unauthorized webhook attempt");
         return err_resp;
     }
 
-    // 2. Parse Event
-    let event_type = headers.get("X-GitHub-Event").and_then(|h| h.to_str().ok()).unwrap_or_default();
+    // PARSING: Parse event
+    let event_type = headers.get("X-GitHub-Event")
+        .and_then(|h| h.to_str().ok())
+        .unwrap_or_default();
+
     let event = match WebhookEvent::try_from_header_and_body(event_type, &body) {
         Ok(ev) => ev,
-        Err(_) => return StatusCode::BAD_REQUEST.into_response(),
+        Err(e) => {
+            tracing::error!("Payload parse error: {:?}", e);
+            return StatusCode::BAD_REQUEST.into_response();
+        }
     };
 
-    // 3. Process Async (Don't make GitHub wait for the AI)
+    // LOGIC: Process PR events in the background
     if let WebhookEventType::PullRequest = event.kind {
-        tracing::info!("Pull Request event received. Dispatching audit task...");
+        tracing::info!("Pull Request event received. Spawning audit task...");
         tokio::spawn(async move {
             if let Err(e) = process_pr_event(state, event).await {
-                tracing::error!("Audit Failed: {:?}", e);
+                tracing::error!("PR Processing Error: {:?}", e);
             }
         });
     }
 
-    StatusCode::ACCEPTED.into_response()
+    StatusCode::ACCEPTED.into_response() 
 }
-
-// --- HELPERS ---
 
 fn verify_signature(state: &AppState, headers: &HeaderMap, body: &Bytes) -> Result<(), axum::response::Response> {
     let signature = headers.get("X-Hub-Signature-256")
@@ -134,8 +136,37 @@ fn verify_signature(state: &AppState, headers: &HeaderMap, body: &Bytes) -> Resu
 }
 
 async fn process_pr_event(state: Arc<AppState>, event: WebhookEvent) -> anyhow::Result<()> {
-    // ... (Your background logic here - Octocrab auth, AI audit, DB log) ...
-    // Reference the logic we built in the previous step
-    tracing::info!("PR Audit complete for repo: {}", event.repository.unwrap().name);
+    let installation = event.installation.context("Missing installation info")?;
+    let repo = event.repository.context("Missing repository info")?;
+    let pr_event = event.content.as_pull_request().context("Not a PR event")?;
+    
+    let owner = &repo.owner.login;
+    let name = &repo.name;
+    let pr_number = pr_event.pull_request.number;
+
+    tracing::info!("Starting audit for {}/{} PR #{}", owner, name, pr_number);
+
+    let app_key = jsonwebtoken::EncodingKey::from_rsa_pem(&state.private_key)?;
+    let octo = Octocrab::builder()
+        .app(state.app_id.into(), app_key)
+        .build()?;
+    let client = octo.installation(installation.id);
+
+    let context = github::get_pr_context(&client, owner, name, pr_number).await?;
+    let report = github::run_privacy_audit(&context).await?;
+    
+    let has_violations = ["VIOLATION", "CRITICAL", "LEAK"].iter().any(|&word| report.to_uppercase().contains(word));
+    let status = if has_violations { "VIOLATION" } else { "CLEAN" };
+
+    sqlx::query!(
+        "INSERT INTO audit_logs (repo_name, pr_number, status, report) VALUES ($1, $2, $3, $4)",
+        name, pr_number as i32, status, report
+    )
+    .execute(&state.db)
+    .await?;
+
+    github::post_review(&client, owner, name, pr_number, &report, has_violations).await?;
+    
+    tracing::info!("Audit finished for PR #{}. Result: {}", pr_number, status);
     Ok(())
 }
