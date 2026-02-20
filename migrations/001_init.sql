@@ -9,3 +9,5 @@ CREATE TABLE audit_logs (
     current_hash TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT NOW()
 );
+
+ALTER TABLE audit_logs ADD COLUMN blockchain_tx TEXT;
