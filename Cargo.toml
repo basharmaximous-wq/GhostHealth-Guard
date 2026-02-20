@@ -10,6 +10,8 @@ tower-http = { version = "0.5", features = ["trace"] }
 
 printpdf = "0.7"
 
+wasmtime = "17"
+
 hmac = "0.12"
 sha2 = "0.10"
 hex = "0.4"
