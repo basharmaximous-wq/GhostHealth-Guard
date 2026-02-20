@@ -57,7 +57,10 @@ async fn handle_webhook(State(state): State<Arc<AppState>>, headers: HeaderMap, 
     let event_type = headers.get("X-GitHub-Event").and_then(|h| h.to_str().ok()).unwrap_or_default();
     let event = match WebhookEvent::try_from_header_and_body(event_type, &body) {
         Ok(ev) => ev,
-        Err(_) => return StatusCode::BAD_REQUEST.into_response(),
+        Err(e) => {
+            tracing::error!("Webhook parse error: {:?}", e);
+            return StatusCode::BAD_REQUEST.into_response();
+        }
     };
 
     if let WebhookEventType::PullRequest = event.kind {
@@ -85,17 +88,22 @@ fn verify_signature(state: &AppState, headers: &HeaderMap, body: &Bytes) -> Resu
 
 async fn process_audit(state: Arc<AppState>, event: WebhookEvent) -> anyhow::Result<()> {
     let repo = event.repository.context("No repo found in webhook")?;
-    let pr_content = event.content.as_pull_request().context("Not a PR event")?;
-    let inst_id = event.installation.context("No installation info")?.id;
+    
+    // Octocrab 0.38: Access payload via 'specific' enum
+    let pr_content = match event.specific {
+        octocrab::models::webhook_events::WebhookEventSpecific::PullRequest(payload) => payload,
+        _ => return Err(anyhow::anyhow!("Not a PR event")),
+    };
 
+    let inst_id = event.installation.context("No installation info")?.id;
     let app_key = jsonwebtoken::EncodingKey::from_rsa_pem(&state.private_key)?;
     let octo = Octocrab::builder().app(state.app_id.into(), app_key).build()?.installation(inst_id);
 
     let pr_number = pr_content.pull_request.number;
-    let owner = &repo.owner.login;
+    let owner = repo.owner.clone().context("No owner info")?.login;
     let repo_name = &repo.name;
 
-    let diff = github::get_pr_context(&octo, owner, repo_name, pr_number).await?;
+    let diff = github::get_pr_context(&octo, &owner, repo_name, pr_number).await?;
     let report = github::run_privacy_audit(&diff).await?;
     
     let has_violations = report.to_uppercase().contains("VIOLATION");
@@ -111,6 +119,6 @@ async fn process_audit(state: Arc<AppState>, event: WebhookEvent) -> anyhow::Res
     .execute(&state.db)
     .await?;
 
-    github::post_review(&octo, owner, repo_name, pr_number, &report, has_violations).await?;
+    github::post_review(&octo, &owner, repo_name, pr_number, &report, has_violations).await?;
     Ok(())
 }
