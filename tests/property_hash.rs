@@ -1,4 +1,6 @@
 use proptest::prelude::*;
+use ghosthealth_guard::hash::generate_hash;
+
 proptest! {
     #[test]
     fn hash_always_64_chars(input in ".*") {

@@ -1,3 +1,23 @@
+use crate::hash::generate_hash;
+
+pub struct AuditEntry {
+    pub data_hash: String,
+    pub entry_hash: String,
+    pub previous_hash: String,
+}
+
+impl AuditEntry {
+    pub fn new(document: &str, previous_hash: &str) -> Self {
+        let data_hash = generate_hash(document);
+        let entry_hash = generate_hash(&format!("{}{}", data_hash, previous_hash));
+        Self {
+            data_hash,
+            entry_hash,
+            previous_hash: previous_hash.to_string(),
+        }
+    }
+}
+
 use crate::models::AuditResult;
 use anyhow::Context;
 use serde_json::json;
