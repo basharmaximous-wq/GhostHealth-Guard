@@ -10,3 +10,4 @@ fn full_document_processing_flow() {
 
     assert!(verify_proof(&hash, &proof));
 }
+#Later this becomes real HTTP tests.
