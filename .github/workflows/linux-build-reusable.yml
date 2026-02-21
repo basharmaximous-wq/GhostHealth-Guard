@@ -1,52 +1,36 @@
-name: Multi-Arch Release
+name: Build Reusable
 
 on:
-  push:
-    tags:
-      - "v*"
+  workflow_call:
+    inputs:
+      target:
+        required: true
+        type: string
+      runs-on:
+        required: true
+        type: string
 
 jobs:
   build:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - target: x86_64-unknown-linux-gnu
-            runs-on: ubuntu-latest
-          - target: aarch64-unknown-linux-gnu
-            runs-on: ubuntu-latest
-          - target: x86_64-apple-darwin
-            runs-on: macos-latest
-          - target: aarch64-apple-darwin
-            runs-on: macos-latest
-
-    uses: ./.github/workflows/build-reusable.yml
-    with:
-      target: ${{ matrix.target }}
-      runs-on: ${{ matrix.runs-on }}
-
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    runs-on: ${{ inputs.runs-on }}
 
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/download-artifact@v4
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          path: ./artifacts
+          targets: ${{ inputs.target }}
 
-      - name: Package
-        run: |
-          cd artifacts
-          for dir in */; do
-            tar -czf "${dir%/}.tar.gz" -C "$dir" ghosthealth-guard
-          done
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v1
+      - uses: Swatinem/rust-cache@v2
         with:
-          files: artifacts/*.tar.gz
-          generate_release_notes: true
+          key: ${{ inputs.target }}
+
+      - name: Build
+        run: cargo build --release --target ${{ inputs.target }} --all-features
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ghosthealth-guard-${{ inputs.target }}
+          path: target/${{ inputs.target }}/release/ghosthealth-guard
+          if-no-files-found: error
