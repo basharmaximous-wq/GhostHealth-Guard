@@ -3,6 +3,7 @@ mod fips;
 mod github;
 mod models;
 mod scanner;
+mod audit;
 
 use anyhow::Context;
 use axum::{
@@ -189,8 +190,6 @@ async fn process_pull_request(state: Arc<AppState>, event: WebhookEvent) -> anyh
         EventInstallation::Full(i) => i.id,
         EventInstallation::Minimal(i) => i.id,
     };
-
-   info!("Audit log stored for PR #{}/{}", repo_name, pr_number);
 
     // Create GitHub client
     let app_key = EncodingKey::from_rsa_pem(&state.private_key)

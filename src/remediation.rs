@@ -1,4 +1,4 @@
-use octocrab::Octocrab;
+use octocrab::{params::repos::Reference, Octocrab};
 
 pub async fn open_remediation_pr(
     client: &Octocrab,
@@ -7,26 +7,74 @@ pub async fn open_remediation_pr(
     base_branch: &str,
     fix_content: String,
 ) -> anyhow::Result<()> {
-
     let branch_name = "ghosthealth-remediation";
+    let target_path = "src/patient.rs";
 
-    client.repos(owner, repo)
-        .create_ref(
-            &format!("refs/heads/{}", branch_name),
-            "BASE_COMMIT_SHA"
-        )
+    let base_ref = client
+        .repos(owner, repo)
+        .get_ref(&Reference::Branch(base_branch.to_string()))
         .await?;
 
-    client.repos(owner, repo)
-        .update_file(
-            "src/patient.rs",
-            "Auto-remediation: remove PHI logging",
-            &fix_content,
-            "BASE_COMMIT_SHA",
-        )
-        .await?;
+    let base_sha = match base_ref.object {
+        octocrab::models::repos::Object::Commit { sha, .. }
+        | octocrab::models::repos::Object::Tag { sha, .. } => sha,
+        _ => return Err(anyhow::anyhow!("Unsupported reference object returned by GitHub")),
+    };
 
-    client.pulls(owner, repo)
+    if let Err(err) = client
+        .repos(owner, repo)
+        .create_ref(&Reference::Branch(branch_name.to_string()), &base_sha)
+        .await
+    {
+        let err_string = err.to_string();
+        if !err_string.contains("Reference already exists") {
+            return Err(err.into());
+        }
+    }
+
+    let existing_file = client
+        .repos(owner, repo)
+        .get_content()
+        .path(target_path)
+        .r#ref(branch_name)
+        .send()
+        .await;
+
+    match existing_file {
+        Ok(page) => {
+            let file = page
+                .items
+                .first()
+                .ok_or_else(|| anyhow::anyhow!("Expected existing file metadata for {target_path}"))?;
+
+            client
+                .repos(owner, repo)
+                .update_file(
+                    target_path,
+                    "Auto-remediation: remove PHI logging",
+                    &fix_content,
+                    &file.sha,
+                )
+                .branch(branch_name)
+                .send()
+                .await?;
+        }
+        Err(_) => {
+            client
+                .repos(owner, repo)
+                .create_file(
+                    target_path,
+                    "Auto-remediation: remove PHI logging",
+                    &fix_content,
+                )
+                .branch(branch_name)
+                .send()
+                .await?;
+        }
+    }
+
+    client
+        .pulls(owner, repo)
         .create("Compliance Fix", branch_name, base_branch)
         .body("Automated remediation for PHI leak")
         .send()
