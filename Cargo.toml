@@ -19,7 +19,7 @@ sha2 = "0.10"
 hex = "0.4"
 jsonwebtoken = "9"
 subtle = "2"
-
+secrecy = "0.8"
 # Database
 sqlx = { version = "0.8", features = [
     "runtime-tokio-rustls",
