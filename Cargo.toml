@@ -56,6 +56,7 @@ testcontainers = "0.15"
 [features]
 default = []
 production = []
+fips = []
 
 [profile.release]
 lto = true
