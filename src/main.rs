@@ -1,3 +1,4 @@
+use dotenvy::dotenv;
 use sqlx::PgPool;
 mod fips;
 mod github;
@@ -38,6 +39,7 @@ struct AppState {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    dotenv().ok();
     // FIPS compliance first
     fips::enable_fips();
     fips::assert_fips_algorithm("AES-256-GCM");
