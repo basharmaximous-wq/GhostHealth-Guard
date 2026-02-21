@@ -19,11 +19,11 @@ jobs:
     uses: ./.github/workflows/linux-build-reusable.yml
     with:
       target: x86_64-unknown-linux-gnu
-      use-vendored-openssl: false  # Use system OpenSSL for x86_64
+      use-vendored-openssl: false
 
   build-aarch64:
     name: Build ARM64
     uses: ./.github/workflows/linux-build-reusable.yml
     with:
       target: aarch64-unknown-linux-gnu
-      use-vendored-openssl: true  # Use vendored OpenSSL for ARM64 cross-compilation
+      use-vendored-openssl: true
