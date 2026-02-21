@@ -189,11 +189,7 @@ async fn process_pull_request(state: Arc<AppState>, event: WebhookEvent) -> anyh
         EventInstallation::Minimal(i) => i.id,
     };
 
-    info!(
-        "Processing PR #{}/{}",
-        repo.name,
-        pr_payload.pull_request.number
-    );
+   info!("Audit log stored for PR #{}/{}", repo_name, pr_number);
 
     // Create GitHub client
     let app_key = EncodingKey::from_rsa_pem(&state.private_key)
