@@ -1,4 +1,4 @@
-name: linux Build
+name: Linux Build
 
 on:
   push:
@@ -20,6 +20,22 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            pkg-config \
+            gcc-aarch64-linux-gnu \
+            libc6-dev-arm64-cross
+          
+          # Additional dependencies for vendored OpenSSL build
+          if [ "${{ matrix.target }}" = "aarch64-unknown-linux-gnu" ]; then
+            sudo apt-get install -y \
+              perl \
+              make \
+              g++
+          fi
+
       - name: Set up Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -27,16 +43,22 @@ jobs:
 
       - name: Cache cargo artifacts
         uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
 
       - name: Install cross
         uses: taiki-e/install-action@cross
 
-      - name: Build project
-        run: cross build --release --target ${{ matrix.target }}
+      - name: Build project (with vendored OpenSSL)
+        env:
+          OPENSSL_STATIC: 1
+        run: cross build --release --target ${{ matrix.target }} --features vendored-openssl
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: ghosthealth-guard-${{ matrix.target }}
-          path: target/${{ matrix.target }}/release/ghosthealth-guard*
+          path: |
+            target/${{ matrix.target }}/release/ghosthealth-guard
+            target/${{ matrix.target }}/release/ghosthealth-guard-*
           if-no-files-found: error
