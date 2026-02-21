@@ -1,5 +1,4 @@
 use sha2::{Digest, Sha256};
-
 pub fn generate_hash(data: &str) -> String {
     let mut hasher = Sha256::new();
     hasher.update(data);
