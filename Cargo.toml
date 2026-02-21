@@ -22,10 +22,9 @@ jsonwebtoken = "9"
 subtle = "2"
 
 # Database
-# Database
 sqlx = { version = "0.8", features = [
     "runtime-tokio-rustls",
-    "sqlite",
+    "postgres",
     "uuid",
     "chrono",
     "macros",

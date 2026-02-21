@@ -1,4 +1,3 @@
-use crate::audit::AuditEntry;
 
 // ─────────────────────────────────────────────
 // Core security logic
