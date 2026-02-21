@@ -1,5 +1,4 @@
-use ghosthealth_guard::blockchain::{MockBlockchainClient, BlockchainClient};
-
+use ghosthealth_guard::blockchain::{BlockchainClient, MockBlockchainClient};
 #[test]
 fn mock_blockchain_returns_tx_id() {
     let client = MockBlockchainClient;
