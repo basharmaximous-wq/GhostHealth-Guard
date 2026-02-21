@@ -2,71 +2,142 @@
 name = "ghosthealth-guard"
 version = "0.1.0"
 edition = "2021"
+rust-version = "1.75"
+description = "GitHub webhook processor with AI-powered code analysis"
+authors = ["Your Name <your.email@example.com>"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/yourusername/ghosthealth-guard"
+readme = "README.md"
 
 [dependencies]
 # Web & Async
-axum = "0.7"
-tokio = { version = "1", features = ["full"] }
-tower-http = { version = "0.5", features = ["trace"] }
+axum = "0.7.5"
+tokio = { version = "1.36", features = ["full"] }
+tower-http = { version = "0.5.2", features = ["trace", "cors"] }
 
-# Security & HMAC
-hmac = "0.12"
-sha2 = "0.10"
-hex = "0.4"
-secrecy = { version = "0.8", features = ["serde"] }
-jsonwebtoken = "9.0"
-subtle = "2.4"
+# Security & Cryptography
+hmac = "0.12.1"
+sha2 = "0.10.8"
+hex = "0.4.3"
+secrecy = { version = "0.8.0", features = ["serde"] }
+jsonwebtoken = "9.2.0"
+subtle = "2.5.0"
+openssl = { version = "0.10.64", optional = true }
 
 # Database & Serialization
-sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "macros"] }
-uuid = { version = "1.0", features = ["v4", "serde"] }
-chrono = { version = "0.4", features = ["serde"] }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
+sqlx = { version = "0.8.0", features = [
+    "runtime-tokio-rustls",
+    "postgres",
+    "uuid",
+    "chrono",
+    "macros",
+    "json",
+    "migrate"
+] }
+uuid = { version = "1.7.0", features = ["v4", "serde"] }
+chrono = { version = "0.4.34", features = ["serde"] }
+serde = { version = "1.0.197", features = ["derive"] }
+serde_json = "1.0.114"
 
-# AI & Utilities
+# AI & ML
+qdrant-client = "1.8.0"
+linfa = "0.7.0"
+ndarray = "0.15.6"
+printpdf = "0.7.0"
+
+# GitHub Integration
 octocrab = { version = "0.38.0", features = ["rustls", "stream"] }
-reqwest = { version = "0.12", features = ["json"] }
-anyhow = "1.0"
-dotenvy = "0.15"
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-regex = "1"
-# Make openssl optional to support features properly
-openssl = { version = "0.10", optional = true }
+reqwest = { version = "0.12.4", features = ["json", "rustls"] }
 
-# AST-level & procedural macro
-syn = { version = "2", features = ["full"] }
-quote = "1"
-walkdir = "2"
+# Code Analysis
+syn = { version = "2.0.52", features = ["full", "extra-traits"] }
+quote = "1.0.35"
+regex = "1.10.4"
 
-# Vector DB / ML
-qdrant-client = "1.6"
-linfa = "0.7"
-ndarray = "0.15"
-
-# PDF / SOC2 export
-printpdf = "0.7"
-
-# zk-SNARK
-ark-std = "0.4"
-ark-bls12-381 = "0.4"
-ark-groth16 = "0.4"
-ark-relations = "0.4"
+# Zero-Knowledge Proofs
+ark-std = "0.4.0"
+ark-bls12-381 = "0.4.0"
+ark-groth16 = "0.4.0"
+ark-relations = "0.4.0"
 
 # Blockchain
-ethers = "2"
+ethers = "2.0.14"
 
-# WASM sandbox
-wasmtime = "17"
+# WASM Sandbox
+wasmtime = "17.0.0"
 
-# Optional features
+# Utilities
+anyhow = "1.0.80"
+dotenvy = "0.15.7"
+tracing = "0.1.40"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter", "json"] }
+walkdir = "2.4.0"
+
+[dev-dependencies]
+# Testing
+proptest = "1.4.0"
+reqwest = { version = "0.12.4", features = ["blocking"] }
+tempfile = "3.10.0"
+mockito = "1.4.0"
+testcontainers = "0.15.0"
+
+[build-dependencies]
+anyhow = "1.0.80"
+dotenvy = "0.15.7"
+
 [features]
-sgx = []
-# Now fips correctly depends on the optional openssl
-fips = ["dep:openssl"]
 default = []
-# vendored-openssl enables the vendored feature on the optional openssl
+sgx = []
+
+# FIPS support with vendored OpenSSL option
+fips = ["dep:openssl"]
 vendored-openssl = ["openssl/vendored"]
-#test
-proptest = "1"
+
+# Optional: Enable for development
+dev = ["dotenvy", "tracing-subscriber/json"]
+
+# Optional: Enable for production with full optimizations
+production = ["vendored-openssl"]
+
+[profile.release]
+lto = true
+codegen-units = 1
+opt-level = 3
+strip = true
+
+[profile.dev]
+opt-level = 0
+debug = true
+
+[workspace]
+# Define workspace members if you have multiple crates
+members = ["."]
+resolver = "2"
+
+[package.metadata.docs.rs]
+features = ["fips", "vendored-openssl"]
+rustdoc-args = ["--cfg", "docsrs"]
+
+[package.metadata.release]
+sign-commit = false
+sign-tag = false
+push-remote = "origin"
+pre-release-commit-message = "chore: release {{version}}"
+tag-message = "{{version}}"
+tag-name = "v{{version}}"
+publish = false
+
+[lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+trivial_casts = "warn"
+trivial_numeric_casts = "warn"
+unused_import_braces = "warn"
+unused_qualifications = "warn"
+
+[lints.clippy]
+cargo = "warn"
+pedantic = "warn"
+nursery = "warn"
+unwrap_used = "deny"
+expect_used = "deny"
