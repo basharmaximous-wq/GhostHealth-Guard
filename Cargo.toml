@@ -32,7 +32,8 @@ dotenvy = "0.15"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 regex = "1"
-openssl = { version = "0.10", features = ["vendored"] }
+openssl = { version = "0.10", default-features = false, features = [] }
+
 # AST-level & procedural macro
 syn = { version = "2", features = ["full"] }
 quote = "1"
@@ -63,3 +64,5 @@ wasmtime = "17"
 [features]
 sgx = []
 fips = ["dep:openssl"]
+default = []
+vendored-openssl = ["openssl/vendored"]
