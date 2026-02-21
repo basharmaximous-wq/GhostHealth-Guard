@@ -1,3 +1,4 @@
+use sqlx::PgPool;
 mod fips;
 mod github;
 mod models;
