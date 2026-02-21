@@ -1,0 +1,25 @@
+name: Linux Build (All Architectures)
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  pull_request:
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  workflow_dispatch:
+
+jobs:
+  build-x86_64:
+    uses: ./.github/workflows/linux-build.yml
+    with:
+      target: x86_64-unknown-linux-gnu
+
+  build-aarch64:
+    uses: ./.github/workflows/linux-build.yml
+    with:
+      target: aarch64-unknown-linux-gnu
