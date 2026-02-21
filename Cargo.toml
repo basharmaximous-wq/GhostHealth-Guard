@@ -32,7 +32,8 @@ dotenvy = "0.15"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 regex = "1"
-openssl = { version = "0.10", default-features = false, features = [] }
+# Make openssl optional to support features properly
+openssl = { version = "0.10", optional = true }
 
 # AST-level & procedural macro
 syn = { version = "2", features = ["full"] }
@@ -43,7 +44,6 @@ walkdir = "2"
 qdrant-client = "1.6"
 linfa = "0.7"
 ndarray = "0.15"
-
 
 # PDF / SOC2 export
 printpdf = "0.7"
@@ -63,6 +63,8 @@ wasmtime = "17"
 # Optional features
 [features]
 sgx = []
+# Now fips correctly depends on the optional openssl
 fips = ["dep:openssl"]
 default = []
+# vendored-openssl enables the vendored feature on the optional openssl
 vendored-openssl = ["openssl/vendored"]
