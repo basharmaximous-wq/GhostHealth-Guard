@@ -1,0 +1,74 @@
+name: Multi-Arch Build
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version'
+        required: false
+        type: string
+
+jobs:
+  prepare:
+    name: Prepare Build Matrix
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - id: set-matrix
+        run: |
+          echo 'matrix={"include":[
+            {"target":"x86_64-unknown-linux-gnu", "runs-on":"ubuntu-latest"},
+            {"target":"aarch64-unknown-linux-gnu", "runs-on":"ubuntu-latest"},
+            {"target":"x86_64-apple-darwin", "runs-on":"macos-latest"},
+            {"target":"aarch64-apple-darwin", "runs-on":"macos-latest"}
+          ]}' >> $GITHUB_OUTPUT
+
+  build:
+    name: Build ${{ matrix.target }}
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.prepare.outputs.matrix) }}
+    uses: ./.github/workflows/linux-build-reusable.yml
+    with:
+      target: ${{ matrix.target }}
+      runs-on: ${{ matrix.runs-on }}
+
+  release:
+    name: Create Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+      
+      - name: Prepare release assets
+        run: |
+          cd ./artifacts
+          for dir in */; do
+            binary_name=$(basename "$dir")
+            cp "$dir/github-webhook" "../${binary_name}"
+            tar -czf "../${binary_name}.tar.gz" -C "$dir" github-webhook
+          done
+          cd ..
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            *.tar.gz
+          generate_release_notes: true
+          draft: false
+          prerelease: false
