@@ -6,9 +6,10 @@ on:
       target:
         required: true
         type: string
-    outputs:
-      artifact-name:
-        value: ghosthealth-guard-${{ inputs.target }}
+      use-vendored-openssl:
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   build:
@@ -17,7 +18,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install dependencies (x86_64)
+      - name: Install system dependencies (x86_64)
         if: inputs.target == 'x86_64-unknown-linux-gnu'
         run: |
           sudo apt-get update
@@ -25,9 +26,10 @@ jobs:
             pkg-config \
             libssl-dev \
             gcc \
-            make
+            make \
+            perl
 
-      - name: Install dependencies (ARM64)
+      - name: Install cross-compilation dependencies (ARM64)
         if: inputs.target == 'aarch64-unknown-linux-gnu'
         run: |
           sudo apt-get update
@@ -35,9 +37,10 @@ jobs:
             gcc-aarch64-linux-gnu \
             g++-aarch64-linux-gnu \
             libc6-dev-arm64-cross \
-            pkg-config-aarch64-linux-gnu \
-            libssl-dev:arm64 \
-            binutils-aarch64-linux-gnu
+            binutils-aarch64-linux-gnu \
+            pkg-config \
+            make \
+            perl
 
       - name: Set up Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -55,17 +58,24 @@ jobs:
           echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
           echo "CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
           echo "CXX_aarch64_unknown_linux_gnu=aarch64-linux-gnu-g++" >> $GITHUB_ENV
-          echo "PKG_CONFIG_ALLOW_CROSS=1" >> $GITHUB_ENV
-          echo "PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig" >> $GITHUB_ENV
-          echo "OPENSSL_LIB_DIR=/usr/lib/aarch64-linux-gnu" >> $GITHUB_ENV
-          echo "OPENSSL_INCLUDE_DIR=/usr/include/aarch64-linux-gnu" >> $GITHUB_ENV
+          echo "AR_aarch64_unknown_linux_gnu=aarch64-linux-gnu-ar" >> $GITHUB_ENV
 
       - name: Build
-        run: cargo build --release --target ${{ inputs.target }}
+        run: |
+          if [ "${{ inputs.use-vendored-openssl }}" = "true" ]; then
+            cargo build --release --target ${{ inputs.target }} --features vendored-openssl
+          else
+            cargo build --release --target ${{ inputs.target }}
+          fi
+        env:
+          OPENSSL_STATIC: ${{ inputs.use-vendored-openssl && '1' || '0' }}
+          RUST_BACKTRACE: full
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: ghosthealth-guard-${{ inputs.target }}
-          path: target/${{ inputs.target }}/release/ghosthealth-guard*
+          path: |
+            target/${{ inputs.target }}/release/ghosthealth-guard
+            target/${{ inputs.target }}/release/ghosthealth-guard-*
           if-no-files-found: error
