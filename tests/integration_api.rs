@@ -1,7 +1,5 @@
-
 use ghosthealth_guard::hash::generate_hash;
 use ghosthealth_guard::zk::{generate_proof, verify_proof};
-
 #[test]
 fn full_document_processing_flow() {
     let document = "Important medical record";
@@ -11,5 +9,3 @@ fn full_document_processing_flow() {
 
     assert!(verify_proof(&hash, &proof));
 }
-
-
