@@ -20,21 +20,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install system dependencies
+      - name: Install system dependencies for cross-compilation
         run: |
           sudo apt-get update
           sudo apt-get install -y \
             pkg-config \
             gcc-aarch64-linux-gnu \
-            libc6-dev-arm64-cross
-          
-          # Additional dependencies for vendored OpenSSL build
-          if [ "${{ matrix.target }}" = "aarch64-unknown-linux-gnu" ]; then
-            sudo apt-get install -y \
-              perl \
-              make \
-              g++
-          fi
+            libc6-dev-arm64-cross \
+            binutils-aarch64-linux-gnu \
+            perl \
+            make
 
       - name: Set up Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -49,9 +44,15 @@ jobs:
       - name: Install cross
         uses: taiki-e/install-action@cross
 
-      - name: Build project (with vendored OpenSSL)
-        env:
-          OPENSSL_STATIC: 1
+      - name: Set up cross-compilation environment for aarch64
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
+          echo "CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
+          echo "CXX_aarch64_unknown_linux_gnu=aarch64-linux-gnu-g++" >> $GITHUB_ENV
+          echo "AR_aarch64_unknown_linux_gnu=aarch64-linux-gnu-ar" >> $GITHUB_ENV
+
+      - name: Build project with vendored OpenSSL
         run: cross build --release --target ${{ matrix.target }} --features vendored-openssl
 
       - name: Upload artifact
