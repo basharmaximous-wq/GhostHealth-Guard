@@ -1,3 +1,5 @@
+use crate::audit::AuditEntry;
+
 // ─────────────────────────────────────────────
 // Core security logic
 // ─────────────────────────────────────────────
@@ -157,14 +159,10 @@ pub async fn process_pull_request(
         // nothing to do for non-PR events
     };
 
-    let _installation_id = match event.installation.context("No installation")? {
-        EventInstallation::Full(i) => i.id,
-        // InstallationId is a newtype — inner value is .0, not .id
-        EventInstallation::Minimal(i) => *i,  
-    };  
+   let repo_name = repo.name.clone();
+   let pr_number = pr_payload.pull_request.number;println!("Processing PR #{} in repo: {}", pr_number, repo_name);
 
-    let _repo_name = repo.name.clone();
-    let _pr_number = pr_payload.pull_request.number;
+let _entry = AuditEntry::new(&repo_name, "genesis");
 
     // Build the GitHub App JWT signing key
     let _app_key = EncodingKey::from_rsa_pem(&state.private_key)

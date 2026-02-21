@@ -1,11 +1,11 @@
 pub trait BlockchainClient {
-    fn submit(&self, data: &str) -> Result<String, String>;
+    fn submit_hash(&self, hash: &str) -> anyhow::Result<String>;
 }
 
 pub struct MockBlockchainClient;
 
 impl BlockchainClient for MockBlockchainClient {
-    fn submit(&self, _data: &str) -> Result<String, String> {
-        Ok("mock_tx_id_123".to_string())
+    fn submit_hash(&self, hash: &str) -> anyhow::Result<String> {
+        Ok(format!("mock_tx_for_{}", hash))
     }
 }

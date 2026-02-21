@@ -4,7 +4,9 @@ mod github;
 mod models;
 mod scanner;
 mod audit;
+mod hash;
 
+use audit::AuditEntry;
 use anyhow::Context;
 use axum::{
     body::Bytes,

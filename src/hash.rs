@@ -1,7 +1,7 @@
-use sha2::{Digest, Sha256};
-pub fn generate_hash(data: &str) -> String {
+use sha2::{Sha256, Digest};
+pub fn generate_hash(input: &str) -> String {
     let mut hasher = Sha256::new();
-    hasher.update(data);
+    hasher.update(input.as_bytes());
     format!("{:x}", hasher.finalize())
 }
 
