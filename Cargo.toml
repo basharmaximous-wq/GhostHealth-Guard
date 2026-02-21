@@ -93,8 +93,9 @@ sgx = []
 fips = ["dep:openssl"]
 vendored-openssl = ["openssl/vendored"]
 
-# Optional: Enable for development
-dev = ["dotenvy", "tracing-subscriber/json"]
+# Optional: Enable for development with additional debugging
+# Note: Only optional dependencies can be in features
+dev = ["tracing-subscriber/json"]  # Removed dotenvy since it's not optional
 
 # Optional: Enable for production with full optimizations
 production = ["vendored-openssl"]
