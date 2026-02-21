@@ -68,3 +68,5 @@ fips = ["dep:openssl"]
 default = []
 # vendored-openssl enables the vendored feature on the optional openssl
 vendored-openssl = ["openssl/vendored"]
+#test
+proptest = "1"
