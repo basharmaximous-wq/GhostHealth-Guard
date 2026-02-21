@@ -1,0 +1,26 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: ghost
+      POSTGRES_PASSWORD: ghost
+      POSTGRES_DB: ghostdb
+    ports:
+      - "5432:5432"
+
+  app:
+    build: .
+    depends_on:
+      - db
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgres://ghost:ghost@db:5432/ghostdb
+      GITHUB_WEBHOOK_SECRET: your_secret
+      GITHUB_APP_ID: 123456
+      PRIVATE_KEY_PATH: /app/private-key.pem
+    volumes:
+      - ./private-key.pem:/app/private-key.pem

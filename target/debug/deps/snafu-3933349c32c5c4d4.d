@@ -1,0 +1,12 @@
+C:\Users\basha\GhostHealth-Guard\target\debug\deps\snafu-3933349c32c5c4d4.d: C:\Users\basha\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\snafu-0.8.9\src\lib.rs C:\Users\basha\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\snafu-0.8.9\src\backtrace_impl_std.rs C:\Users\basha\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\snafu-0.8.9\src\once_bool.rs C:\Users\basha\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\snafu-0.8.9\src\error_chain.rs C:\Users\basha\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\snafu-0.8.9\src\report.rs C:\Users\basha\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\snafu-0.8.9\src\boxed_impls.rs C:\Users\basha\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\snafu-0.8.9\src\Snafu.md C:\Users\basha\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\snafu-0.8.9\src\report.md
+
+C:\Users\basha\GhostHealth-Guard\target\debug\deps\libsnafu-3933349c32c5c4d4.rmeta: C:\Users\basha\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\snafu-0.8.9\src\lib.rs C:\Users\basha\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\snafu-0.8.9\src\backtrace_impl_std.rs C:\Users\basha\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\snafu-0.8.9\src\once_bool.rs C:\Users\basha\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\snafu-0.8.9\src\error_chain.rs C:\Users\basha\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\snafu-0.8.9\src\report.rs C:\Users\basha\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\snafu-0.8.9\src\boxed_impls.rs C:\Users\basha\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\snafu-0.8.9\src\Snafu.md C:\Users\basha\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\snafu-0.8.9\src\report.md
+
+C:\Users\basha\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\snafu-0.8.9\src\lib.rs:
+C:\Users\basha\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\snafu-0.8.9\src\backtrace_impl_std.rs:
+C:\Users\basha\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\snafu-0.8.9\src\once_bool.rs:
+C:\Users\basha\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\snafu-0.8.9\src\error_chain.rs:
+C:\Users\basha\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\snafu-0.8.9\src\report.rs:
+C:\Users\basha\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\snafu-0.8.9\src\boxed_impls.rs:
+C:\Users\basha\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\snafu-0.8.9\src\Snafu.md:
+C:\Users\basha\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\snafu-0.8.9\src\report.md:

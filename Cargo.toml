@@ -1,0 +1,72 @@
+[package]
+name = "ghosthealth-guard"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+description = "GitHub webhook processor with AI-powered code analysis"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/yourusername/ghosthealth-guard"
+
+[dependencies]
+# Web
+axum = "0.7"
+tokio = { version = "1", features = ["full"] }
+tower-http = { version = "0.5", features = ["trace", "cors"] }
+regex = "1"
+# Security
+hmac = "0.12"
+sha2 = "0.10"
+hex = "0.4"
+jsonwebtoken = "9"
+subtle = "2"
+
+# Database
+sqlx = { version = "0.8", features = [
+    "runtime-tokio-rustls",
+    "postgres",
+    "uuid",
+    "chrono",
+    "macros",
+    "json",
+    "migrate"
+] }
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+secrecy = "0.8"
+# GitHub
+octocrab = { version = "0.38", features = ["rustls"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+
+# Utilities
+anyhow = "1"
+dotenvy = "0.15"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+[dev-dependencies]
+proptest = "1"
+tempfile = "3"
+mockito = "1"
+testcontainers = "0.15"
+
+[features]
+default = []
+production = []
+fips = []
+
+[profile.release]
+lto = true
+codegen-units = 1
+opt-level = 3
+strip = true
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
