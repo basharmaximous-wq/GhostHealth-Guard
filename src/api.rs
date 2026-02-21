@@ -2,7 +2,6 @@ use axum::{routing::post, Json, Router};
 use serde::{Deserialize, Serialize};
 use crate::hash::generate_hash;
 use crate::zk::{generate_proof, verify_proof};
-
 #[derive(Deserialize)]
 pub struct DocumentRequest {
     pub document: String,
@@ -14,7 +13,6 @@ pub struct DocumentResponse {
     pub proof: String,
     pub verified: bool,
 }
-
 async fn process_document(
     Json(payload): Json<DocumentRequest>,
 ) -> Json<DocumentResponse> {
