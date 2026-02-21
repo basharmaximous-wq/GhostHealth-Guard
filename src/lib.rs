@@ -5,3 +5,4 @@ pub mod hash;
 pub mod zk;
 pub mod blockchain;
 pub mod github;
+pub mod remediation;
