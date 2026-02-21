@@ -206,7 +206,7 @@ async fn process_pull_request(state: Arc<AppState>, event: WebhookEvent) -> anyh
         .context("No owner in repository")?
         .login;
     
-    let repo_name = repo.name;
+    let repo_name = repo.name.clone();
     let pr_number = pr_payload.pull_request.number;
 
     // Get PR diff
