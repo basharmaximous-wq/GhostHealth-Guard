@@ -20,16 +20,23 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install system dependencies for cross-compilation
+      - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
             pkg-config \
-            gcc-aarch64-linux-gnu \
-            libc6-dev-arm64-cross \
-            binutils-aarch64-linux-gnu \
-            perl \
-            make
+            libssl-dev \
+            gcc-aarch64-linux-gnu
+          
+          # Install ARM64 OpenSSL libraries for cross-compilation
+          if [ "${{ matrix.target }}" = "aarch64-unknown-linux-gnu" ]; then
+            sudo dpkg --add-architecture arm64
+            sudo apt-get update
+            sudo apt-get install -y \
+              libssl-dev:arm64 \
+              gcc-aarch64-linux-gnu \
+              pkg-config-aarch64-linux-gnu
+          fi
 
       - name: Set up Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -44,16 +51,17 @@ jobs:
       - name: Install cross
         uses: taiki-e/install-action@cross
 
-      - name: Set up cross-compilation environment for aarch64
+      - name: Set environment for aarch64 cross-compilation
         if: matrix.target == 'aarch64-unknown-linux-gnu'
         run: |
+          echo "PKG_CONFIG_ALLOW_CROSS=1" >> $GITHUB_ENV
+          echo "PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig" >> $GITHUB_ENV
+          echo "OPENSSL_LIB_DIR=/usr/lib/aarch64-linux-gnu" >> $GITHUB_ENV
+          echo "OPENSSL_INCLUDE_DIR=/usr/include/aarch64-linux-gnu" >> $GITHUB_ENV
           echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
-          echo "CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
-          echo "CXX_aarch64_unknown_linux_gnu=aarch64-linux-gnu-g++" >> $GITHUB_ENV
-          echo "AR_aarch64_unknown_linux_gnu=aarch64-linux-gnu-ar" >> $GITHUB_ENV
 
-      - name: Build project with vendored OpenSSL
-        run: cross build --release --target ${{ matrix.target }} --features vendored-openssl
+      - name: Build project
+        run: cross build --release --target ${{ matrix.target }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
