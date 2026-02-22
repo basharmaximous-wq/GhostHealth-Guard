@@ -1,4 +1,3 @@
-
 // ─────────────────────────────────────────────
 // Core security logic
 // ─────────────────────────────────────────────
@@ -18,8 +17,9 @@ pub mod blockchain;
 
 // Domain logic
 pub mod patient_processor;
+
 // ─────────────────────────────────────────────
-// Re-exports (explicit is safer than wildcard)
+// Re-exports
 // ─────────────────────────────────────────────
 pub use audit::*;
 pub use blockchain::*;
@@ -29,26 +29,30 @@ pub use models::*;
 pub use scanner::*;
 
 // ─────────────────────────────────────────────
-// Imports required by the functions below
+// Imports
 // ─────────────────────────────────────────────
 use anyhow::Context;
 use axum::http::HeaderMap;
 use axum::body::Bytes;
+use hex;
+use hmac::{Hmac, Mac};
 use jsonwebtoken::EncodingKey;
-use octocrab::models::{Installation, InstallationId}; 
+use octocrab::models::{Installation, InstallationId};
+use sha2::Sha256;
 use std::sync::Arc;
 
 // ─────────────────────────────────────────────
-// AppState — shared server state
+// AppState
 // ─────────────────────────────────────────────
 #[derive(Debug, Clone)]
 pub struct AppState {
     pub private_key: Vec<u8>,
     pub github_app_id: String,
+    pub webhook_secret: Vec<u8>,
 }
 
 // ─────────────────────────────────────────────
-// Repository — minimal representation
+// Repository
 // ─────────────────────────────────────────────
 #[derive(Debug, Clone)]
 pub struct Repository {
@@ -92,8 +96,6 @@ pub enum InstallationEvent {
     Deleted(Installation),
 }
 
-/// Represents the installation field on an incoming webhook event.
-/// GitHub sends either the full object or just the ID depending on event type.
 #[derive(Debug)]
 pub enum EventInstallation {
     Full(Box<Installation>),
@@ -101,15 +103,11 @@ pub enum EventInstallation {
 }
 
 // ─────────────────────────────────────────────
-// Webhook event — the single canonical type
-// (previously you had this defined TWICE, once
-//  as an enum and once as a struct — removed the
-//  enum; the struct is what your code actually uses)
+// Webhook event
 // ─────────────────────────────────────────────
 #[derive(Debug)]
 pub enum WebhookEventPayload {
     PullRequest(Box<PullRequestEvent>),
-    // extend with other variants as needed
 }
 
 #[derive(Debug)]
@@ -120,10 +118,78 @@ pub struct WebhookEvent {
 }
 
 impl WebhookEvent {
-    /// Parse and verify an incoming GitHub webhook payload.
-    pub fn from_bytes(_body: &Bytes, _signature: &str, _secret: &[u8]) -> anyhow::Result<Self> {
-        // TODO: HMAC-SHA256 verify signature, then serde_json::from_slice
-        todo!("Implement webhook verification")
+    pub fn from_bytes(body: &Bytes, signature: &str, secret: &[u8]) -> anyhow::Result<Self> {
+        // 1. Verify HMAC-SHA256 signature
+        let sig_bytes = hex::decode(
+            signature
+                .strip_prefix("sha256=")
+                .context("Signature missing sha256= prefix")?,
+        )
+        .context("Invalid hex in signature")?;
+
+        let mut mac = Hmac::<Sha256>::new_from_slice(secret)
+            .context("Failed to create HMAC")?;
+        mac.update(body);
+        mac.verify_slice(&sig_bytes)
+            .context("Webhook signature mismatch — invalid secret or payload")?;
+
+        // 2. Parse JSON payload
+        let payload: serde_json::Value =
+            serde_json::from_slice(body).context("Failed to parse webhook JSON")?;
+
+        // 3. Build Repository
+        let repo = payload["repository"].as_object().map(|r| Repository {
+            id: r["id"].as_i64().unwrap_or(0),
+            name: r["name"].as_str().unwrap_or("").to_string(),
+            full_name: r["full_name"].as_str().unwrap_or("").to_string(),
+        });
+
+        let repo_for_event = repo.clone().unwrap_or(Repository {
+            id: 0,
+            name: String::new(),
+            full_name: String::new(),
+        });
+
+        // 4. Build WebhookEvent
+        Ok(Self {
+            repository: repo,
+            installation: None,
+            spec: WebhookEventPayload::PullRequest(Box::new(PullRequestEvent {
+                action: payload["action"].as_str().unwrap_or("").to_string(),
+                number: payload["number"].as_i64().unwrap_or(0),
+                pull_request: PullRequest {
+                    number: payload["pull_request"]["number"].as_i64().unwrap_or(0),
+                    title: payload["pull_request"]["title"]
+                        .as_str()
+                        .unwrap_or("")
+                        .to_string(),
+                    body: payload["pull_request"]["body"]
+                        .as_str()
+                        .map(|s| s.to_string()),
+                    head: PullRequestBranch {
+                        r#ref: payload["pull_request"]["head"]["ref"]
+                            .as_str()
+                            .unwrap_or("")
+                            .to_string(),
+                        sha: payload["pull_request"]["head"]["sha"]
+                            .as_str()
+                            .unwrap_or("")
+                            .to_string(),
+                    },
+                    base: PullRequestBranch {
+                        r#ref: payload["pull_request"]["base"]["ref"]
+                            .as_str()
+                            .unwrap_or("")
+                            .to_string(),
+                        sha: payload["pull_request"]["base"]["sha"]
+                            .as_str()
+                            .unwrap_or("")
+                            .to_string(),
+                    },
+                },
+                repository: repo_for_event,
+            })),
+        })
     }
 }
 
@@ -131,16 +197,28 @@ impl WebhookEvent {
 // Webhook signature verification
 // ─────────────────────────────────────────────
 pub fn verify_webhook(
-    _state: &AppState,
+    state: &AppState,
     headers: &HeaderMap,
-    _body: &Bytes,
+    body: &Bytes,
 ) -> anyhow::Result<()> {
-    let _signature = headers
+    let signature = headers
         .get("X-Hub-Signature-256")
         .and_then(|v| v.to_str().ok())
         .context("Missing X-Hub-Signature-256 header")?;
 
-    // TODO: compute HMAC-SHA256(_body, app_secret) and compare to _signature
+    let sig_bytes = hex::decode(
+        signature
+            .strip_prefix("sha256=")
+            .context("Signature missing sha256= prefix")?,
+    )
+    .context("Invalid hex in signature")?;
+
+    let mut mac = Hmac::<Sha256>::new_from_slice(&state.webhook_secret)
+        .context("Failed to create HMAC")?;
+    mac.update(body);
+    mac.verify_slice(&sig_bytes)
+        .context("Webhook signature verification failed")?;
+
     Ok(())
 }
 
@@ -155,15 +233,14 @@ pub async fn process_pull_request(
 
     let pr_payload = match event.spec {
         WebhookEventPayload::PullRequest(p) => p,
-        // nothing to do for non-PR events
     };
 
-   let repo_name = repo.name.clone();
-   let pr_number = pr_payload.pull_request.number;println!("Processing PR #{} in repo: {}", pr_number, repo_name);
+    let repo_name = repo.name.clone();
+    let pr_number = pr_payload.pull_request.number;
+    println!("Processing PR #{} in repo: {}", pr_number, repo_name);
 
-let _entry = AuditEntry::new(&repo_name, "genesis");
+    let _entry = AuditEntry::new(&repo_name, "genesis");
 
-    // Build the GitHub App JWT signing key
     let _app_key = EncodingKey::from_rsa_pem(&state.private_key)
         .context("Failed to build RSA encoding key — is PRIVATE_KEY_PATH correct?")?;
 

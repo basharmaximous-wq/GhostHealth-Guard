@@ -7,7 +7,7 @@ pub struct AuditResult {
     pub issues: Vec<Issue>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Issue {
     pub category: String,
     pub severity: String,
