@@ -17,15 +17,12 @@ RUN apt-get update && apt-get install -y \
 COPY Cargo.toml Cargo.lock ./
 
 # Create dummy src to cache dependencies
-RUN mkdir src && echo "fn main() {}" > src/main.rs
+RUN mkdir -p src && echo "fn main() {}" > src/main.rs \
+    && cargo build --release \
+    && rm -rf src target/release/ghosthealth-guard target/release/deps/ghosthealth*
 
-RUN cargo build --release
-RUN rm -rf src
-
-# Copy full project
+# Copy full project and build real binary
 COPY . .
-
-# Build real binary
 RUN cargo build --release
 
 # =========================
@@ -44,8 +41,11 @@ RUN apt-get update && apt-get install -y \
 # Copy compiled binary
 COPY --from=builder /app/target/release/ghosthealth-guard /usr/local/bin/ghosthealth-guard
 
+# Copy private key if present
+RUN test -f /app/private-key.pem && chown appuser:appuser /app/private-key.pem || true
+
 # Security: run as non-root
-RUN useradd -m appuser
+RUN useradd -m appuser && chown -R appuser:appuser /app
 USER appuser
 
 EXPOSE 3000
