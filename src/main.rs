@@ -26,7 +26,7 @@ use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
 use subtle::ConstantTimeEq;
 use tracing::info;
-
+use octocrab::models::webhook_events::{WebhookEvent, WebhookEventType, WebhookEventSpecific};
 type HmacSha256 = Hmac<Sha256>;
 
 #[derive(Clone)]
@@ -185,11 +185,10 @@ fn verify_webhook(state: &AppState, headers: &HeaderMap, body: &Bytes) -> Result
 async fn process_pull_request(state: Arc<AppState>, event: WebhookEvent) -> anyhow::Result<()> {
     let repo = event.repository.context("No repository in event")?;
     
-    let pr_payload = match event.specific {
-        WebhookEventPayload::PullRequest(p) => p,
-        _ => return Ok(()), // Not a PR event
-    };
-
+   let pr_payload = match event.specific {
+    octocrab::models::webhook_events::WebhookEventSpecific::PullRequest(p) => p,
+    _ => return Ok(()),
+};
     let installation_id = match event.installation.context("No installation in event")? {
         EventInstallation::Full(i) => i.id,
         EventInstallation::Minimal(i) => i.id,
@@ -208,9 +207,9 @@ println!("Processing PR #{} in repo: {}", pr_number, repo_name);
         .context("Failed to build GitHub client")?
         .installation(installation_id);
 
-    let owner = repo.owner
-        .context("No owner in repository")?
-        .login;
+    let owner = repo.owner.clone().context
+    ("No owner in repository")?
+    .login;
     
     let repo_name = repo.name.clone();
     let pr_number = pr_payload.pull_request.number;
