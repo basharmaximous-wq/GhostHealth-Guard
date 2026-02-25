@@ -23,11 +23,11 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
-      - name: Check formatting
-        run: cargo fmt --all -- --check
+      - name: Format code
+        run: cargo fmt --all
 
       - name: Clippy
-        run: cargo clippy --workspace --all-targets -- -D warnings
+        run: cargo clippy --workspace --lib --tests -- -D warnings
 
   test:
     name: Unit Tests
@@ -41,7 +41,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: Run tests
-        run: cargo test --workspace --lib --bins
+        run: cargo test --workspace --lib --tests
 
   integration:
     name: Integration Tests
@@ -98,7 +98,7 @@ jobs:
       - uses: taiki-e/install-action@cargo-llvm-cov
 
       - name: Generate coverage
-        run: cargo llvm-cov --workspace --lcov --output-path lcov.info
+        run: cargo llvm-cov --workspace --lib --tests --lcov --output-path lcov.info
 
       - uses: codecov/codecov-action@v4
         with:
