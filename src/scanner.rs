@@ -5,14 +5,17 @@ use std::process::Command;
 pub fn deterministic_scan(diff: &str) -> Vec<Issue> {
     let mut issues = vec![];
 
-    let phi_pattern =
-        Regex::new(r"(?i)(ssn|patient_id|patient|heart_rate|dob|diagnosis|medical_record|name)")
-            .expect("failed to compile PHI regex");
-    let logging_pattern = Regex::new(r"(println!|info!|debug!|warn!|tracing::)")
-        .expect("failed to compile logging regex");
-    let unsafe_pattern = Regex::new(r"\bunsafe\s*\{").expect("failed to compile unsafe regex");
-    let hardcoded_pattern = Regex::new(r#"(?i)(password|secret|api_key|token)\s*=\s*"[^"]+""#)
-        .expect("failed to compile hardcoded-secret regex");
+    let (phi_pattern, logging_pattern, unsafe_pattern, hardcoded_pattern) = match (
+        Regex::new(r"(?i)(ssn|patient_id|patient|heart_rate|dob|diagnosis|medical_record|name)"),
+        Regex::new(r"(println!|info!|debug!|warn!|tracing::)"),
+        Regex::new(r"\bunsafe\s*\{"),
+        Regex::new(r#"(?i)(password|secret|api_key|token)\s*=\s*"[^"]+""#),
+    ) {
+        (Ok(phi), Ok(logging), Ok(unsafe_re), Ok(hardcoded)) => {
+            (phi, logging, unsafe_re, hardcoded)
+        }
+        _ => return issues,
+    };
 
     for (i, line) in diff.lines().enumerate() {
         // PHI being logged

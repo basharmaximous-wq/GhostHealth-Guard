@@ -255,9 +255,9 @@ async fn process_pull_request(
         VALUES ($1, $2, $3, $4, $5, $6, $7)
         "#,
     )
-    .bind(repo_name)
+    .bind(&repo_name)
     .bind(pr_number as i32)
-    .bind(result.status)
+    .bind(&result.status)
     .bind(result.risk_score as i32)
     .bind(serde_json::to_value(&result)?)
     .bind(prev_hash)
