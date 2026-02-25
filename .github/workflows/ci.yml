@@ -29,7 +29,6 @@ jobs:
       - name: Clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
 
-
   test:
     name: Unit Tests
     runs-on: ubuntu-latest
@@ -43,7 +42,6 @@ jobs:
 
       - name: Run tests
         run: cargo test --all-features --lib --bins
-
 
   integration:
     name: Integration Tests
@@ -85,7 +83,6 @@ jobs:
 
       - name: Run integration tests
         run: cargo test --tests --all-features -- --nocapture
-
 
   coverage:
     name: Code Coverage
