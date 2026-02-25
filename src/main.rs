@@ -18,7 +18,7 @@ use axum::{
 };
 use hmac::{Hmac, Mac};
 use jsonwebtoken::EncodingKey;
-use octocrab::{models::webhook_events::*, Octocrab};
+use octocrab::Octocrab;
 use secrecy::{ExposeSecret, SecretString};
 use sha2::Sha256;
 use sqlx::postgres::PgPoolOptions;
@@ -125,24 +125,27 @@ async fn handle_webhook(
         .and_then(|h| h.to_str().ok())
         .unwrap_or("unknown");
 
-    let event = match WebhookEvent::try_from_header_and_body(event_type, &body) {
-        Ok(e) => e,
+    if event_type != "pull_request" {
+        tracing::info!("Ignoring non-PR event: {}", event_type);
+        return StatusCode::ACCEPTED;
+    }
+
+    let payload: serde_json::Value = match serde_json::from_slice(&body) {
+        Ok(p) => p,
         Err(e) => {
-            tracing::error!("Failed to parse webhook event: {:?}", e);
+            tracing::error!("Failed to parse JSON: {:?}", e);
             return StatusCode::BAD_REQUEST;
         }
     };
 
-    if let WebhookEventType::PullRequest = event.kind {
-        let state_clone = state.clone();
-        tokio::spawn(async move {
-            if let Err(e) = process_pull_request(state_clone, event).await {
-                tracing::error!("Failed to process PR: {:?}", e);
-            }
-        });
-        tracing::info!("Queued PR processing job");
-    }
+    let state_clone = state.clone();
+    tokio::spawn(async move {
+        if let Err(e) = process_pull_request(state_clone, payload).await {
+            tracing::error!("Failed to process PR: {:?}", e);
+        }
+    });
 
+    tracing::info!("Queued PR processing job");
     StatusCode::ACCEPTED
 }
 
@@ -169,25 +172,39 @@ fn verify_webhook(state: &AppState, headers: &HeaderMap, body: &Bytes) -> Result
     Ok(())
 }
 
-async fn process_pull_request(state: Arc<AppState>, event: WebhookEvent) -> anyhow::Result<()> {
-    let repo = event.repository.context("No repository in event")?;
+async fn process_pull_request(
+    state: Arc<AppState>,
+    payload: serde_json::Value,
+) -> anyhow::Result<()> {
+    // Extract fields from JSON directly
+    let repo_name = payload["repository"]["full_name"]
+        .as_str()
+        .context("Missing repository.full_name")?
+        .to_string();
 
-    let pr_payload = match event.specific {
-        WebhookEventPayload::PullRequest(p) => p,
-        _ => return Ok(()),
-    };
+    let pr_number = payload["pull_request"]["number"]
+        .as_u64()
+        .context("Missing pull_request.number")?;
 
-    let installation_id = match event.installation.context("No installation in event")? {
-        EventInstallation::Full(i) => i.id,
-        EventInstallation::Minimal(i) => i.id,
-    };
+    let installation_id = payload["installation"]["id"]
+        .as_u64()
+        .context("Missing installation.id")?;
 
-    let repo_name = repo.name.clone();
-    let pr_number = pr_payload.pull_request.number;
-    println!("Processing PR #{} in repo: {}", pr_number, repo_name);
+    let action = payload["action"].as_str().unwrap_or("unknown");
 
+    info!("Processing PR #{} in {} (action: {})", pr_number, repo_name, action);
+
+    // Only process opened and synchronize actions
+    if action != "opened" && action != "synchronize" {
+        info!("Ignoring PR action: {}", action);
+        return Ok(());
+    }
+
+    // Build GitHub client
     let app_key = EncodingKey::from_rsa_pem(&state.private_key)
-        .context("Failed to create RSA key from private key")?;
+        .context("Failed to create RSA key")?;
+
+    let installation_id = octocrab::models::InstallationId(installation_id);
 
     let octo = Octocrab::builder()
         .app(state.app_id.into(), app_key)
@@ -195,20 +212,16 @@ async fn process_pull_request(state: Arc<AppState>, event: WebhookEvent) -> anyh
         .context("Failed to build GitHub client")?
         .installation(installation_id);
 
-    let owner = repo.owner
-        .clone()
-        .context("No owner in repository")?
-        .login;
-
-    let repo_name = repo.name.clone();
-    let pr_number = pr_payload.pull_request.number;
+    let (owner, repo) = repo_name
+        .split_once('/')
+        .context("Invalid repo format")?;
 
     // Get PR diff
-    let diff = github::get_pr_diff(&octo, &owner, &repo_name, pr_number)
+    let diff = github::get_pr_diff(&octo, owner, repo, pr_number)
         .await
         .context("Failed to get PR diff")?;
 
-    // Process the diff
+    // Run analysis
     let result = github::process_diff(&diff)
         .await
         .context("Failed to process diff")?;
@@ -224,10 +237,14 @@ async fn process_pull_request(state: Arc<AppState>, event: WebhookEvent) -> anyh
         .map(|r| r.current_hash)
         .unwrap_or_else(|| "GENESIS".to_string());
 
-    let data_to_hash = format!("{}{}{}", repo_name, serde_json::to_string(&result)?, prev_hash);
-    let new_hash = hash::generate_hash(&data_to_hash);
+let entry = audit::AuditEntry::new(
+    &format!("{}{}", repo_name, serde_json::to_string(&result)?),
+    &prev_hash,
+);
+let new_hash = entry.entry_hash.clone();
+info!("Audit chain — data_hash: {}, prev: {}", entry.data_hash, entry.previous_hash);
 
-    // Store in database
+    // Save to database
     sqlx::query!(
         r#"
         INSERT INTO audit_logs 
@@ -246,14 +263,14 @@ async fn process_pull_request(state: Arc<AppState>, event: WebhookEvent) -> anyh
     .await
     .context("Failed to insert audit log")?;
 
-    info!("Audit log stored for PR #{}/{}", repo_name, pr_number);
+    info!("Audit log saved for PR #{} in {}", pr_number, repo_name);
 
-    // Post review to GitHub
-    github::post_review(&octo, &owner, &repo_name, pr_number, &result)
+    // Post review comment to GitHub
+    github::post_review(&octo, owner, repo, pr_number, &result)
         .await
         .context("Failed to post review")?;
 
-    info!("Review posted for PR #{}/{}", repo_name, pr_number);
+    info!("Review posted for PR #{} in {}", pr_number, repo_name);
 
     Ok(())
 }
