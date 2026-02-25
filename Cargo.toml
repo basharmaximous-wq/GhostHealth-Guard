@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2021"
 rust-version = "1.75"
 description = "GitHub webhook processor with AI-powered code analysis"
-license = "MIT OR Apache-2.0"
-repository = "https://github.com/yourusername/ghosthealth-guard"
+license = "Apache-2.0"
+repository = "https://github.com/basharmaximous-wq/GhostHealth-Guard"
 
 [dependencies]
 
@@ -40,7 +40,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 secrecy = "0.8"
 # GitHub
-octocrab = { version = "0.38.0", features = ["rustls", "stream", "full"] }
+octocrab = { version = "0.38.0", features = ["rustls"] }
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 
 # Utilities

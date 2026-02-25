@@ -7,7 +7,6 @@ mod scanner;
 mod audit;
 mod hash;
 
-use audit::AuditEntry;
 use anyhow::Context;
 use axum::{
     body::Bytes,
@@ -26,7 +25,7 @@ use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
 use subtle::ConstantTimeEq;
 use tracing::info;
-use octocrab::models::webhook_events::{WebhookEvent, WebhookEventType, WebhookEventSpecific};
+
 type HmacSha256 = Hmac<Sha256>;
 
 #[derive(Clone)]
@@ -40,11 +39,10 @@ struct AppState {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     dotenv().ok();
-    // FIPS compliance first
+
     fips::enable_fips();
     fips::assert_fips_algorithm("AES-256-GCM");
 
-    // Initialize structured logging
     tracing_subscriber::fmt()
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
         .with_target(true)
@@ -56,7 +54,6 @@ async fn main() -> anyhow::Result<()> {
 
     info!("Starting GitHub webhook processor");
 
-    // Database connection with proper pooling
     let db = PgPoolOptions::new()
         .max_connections(10)
         .connect(&std::env::var("DATABASE_URL").context("DATABASE_URL must be set")?)
@@ -65,20 +62,19 @@ async fn main() -> anyhow::Result<()> {
 
     info!("Database connection established");
 
-    // Load required environment variables
     let webhook_secret = SecretString::new(
         std::env::var("GITHUB_WEBHOOK_SECRET")
             .context("GITHUB_WEBHOOK_SECRET must be set")?
     );
-    
+
     let app_id = std::env::var("GITHUB_APP_ID")
         .context("GITHUB_APP_ID must be set")?
         .parse()
         .context("GITHUB_APP_ID must be a valid u64")?;
-    
+
     let private_key_path = std::env::var("PRIVATE_KEY_PATH")
         .context("PRIVATE_KEY_PATH must be set")?;
-    
+
     let private_key = std::fs::read(&private_key_path)
         .with_context(|| format!("Failed to read private key from {}", private_key_path))?;
 
@@ -91,7 +87,6 @@ async fn main() -> anyhow::Result<()> {
         db,
     });
 
-    // Build router with webhook and health endpoints
     let app = Router::new()
         .route("/webhook", post(handle_webhook))
         .route("/health", get(health))
@@ -99,11 +94,11 @@ async fn main() -> anyhow::Result<()> {
 
     let addr = "0.0.0.0:3000";
     info!("Starting server on {}", addr);
-    
+
     let listener = tokio::net::TcpListener::bind(addr)
         .await
         .context("Failed to bind to address")?;
-    
+
     axum::serve(listener, app)
         .await
         .context("Server error")?;
@@ -111,30 +106,25 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-/// Health check endpoint for k8s/docker
 async fn health() -> impl IntoResponse {
     StatusCode::OK
 }
 
-/// Handle incoming GitHub webhooks
 async fn handle_webhook(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     body: Bytes,
 ) -> impl IntoResponse {
-    // Verify webhook signature
     if let Err(e) = verify_webhook(&state, &headers, &body) {
         tracing::warn!("Webhook verification failed: {:?}", e);
         return StatusCode::UNAUTHORIZED;
     }
 
-    // Extract event type
     let event_type = headers
         .get("X-GitHub-Event")
         .and_then(|h| h.to_str().ok())
         .unwrap_or("unknown");
 
-    // Parse webhook event
     let event = match WebhookEvent::try_from_header_and_body(event_type, &body) {
         Ok(e) => e,
         Err(e) => {
@@ -143,7 +133,6 @@ async fn handle_webhook(
         }
     };
 
-    // Process PR events asynchronously
     if let WebhookEventType::PullRequest = event.kind {
         let state_clone = state.clone();
         tokio::spawn(async move {
@@ -157,14 +146,13 @@ async fn handle_webhook(
     StatusCode::ACCEPTED
 }
 
-/// Verify GitHub webhook HMAC signature
 fn verify_webhook(state: &AppState, headers: &HeaderMap, body: &Bytes) -> Result<(), ()> {
     let sig = headers
         .get("X-Hub-Signature-256")
         .ok_or(())?
         .to_str()
         .map_err(|_| ())?;
-    
+
     let remote = sig.strip_prefix("sha256=").ok_or(())?;
 
     let mut mac = HmacSha256::new_from_slice(state.webhook_secret.expose_secret().as_bytes())
@@ -181,36 +169,37 @@ fn verify_webhook(state: &AppState, headers: &HeaderMap, body: &Bytes) -> Result
     Ok(())
 }
 
-/// Process pull request in background
 async fn process_pull_request(state: Arc<AppState>, event: WebhookEvent) -> anyhow::Result<()> {
     let repo = event.repository.context("No repository in event")?;
-    
-   let pr_payload = match event.specific {
-    octocrab::models::webhook_events::WebhookEventSpecific::PullRequest(p) => p,
-    _ => return Ok(()),
-};
+
+    let pr_payload = match event.specific {
+        WebhookEventPayload::PullRequest(p) => p,
+        _ => return Ok(()),
+    };
+
     let installation_id = match event.installation.context("No installation in event")? {
         EventInstallation::Full(i) => i.id,
         EventInstallation::Minimal(i) => i.id,
     };
-let repo_name = repo.name.clone();
-let pr_number = pr_payload.pull_request.number;
-println!("Processing PR #{} in repo: {}", pr_number, repo_name);
 
-    // Create GitHub client
+    let repo_name = repo.name.clone();
+    let pr_number = pr_payload.pull_request.number;
+    println!("Processing PR #{} in repo: {}", pr_number, repo_name);
+
     let app_key = EncodingKey::from_rsa_pem(&state.private_key)
         .context("Failed to create RSA key from private key")?;
-    
+
     let octo = Octocrab::builder()
         .app(state.app_id.into(), app_key)
         .build()
         .context("Failed to build GitHub client")?
         .installation(installation_id);
 
-    let owner = repo.owner.clone().context
-    ("No owner in repository")?
-    .login;
-    
+    let owner = repo.owner
+        .clone()
+        .context("No owner in repository")?
+        .login;
+
     let repo_name = repo.name.clone();
     let pr_number = pr_payload.pull_request.number;
 
@@ -224,37 +213,47 @@ println!("Processing PR #{} in repo: {}", pr_number, repo_name);
         .await
         .context("Failed to process diff")?;
 
+    // Build audit chain hash
+    let last_record = sqlx::query!(
+        "SELECT current_hash FROM audit_logs ORDER BY created_at DESC LIMIT 1"
+    )
+    .fetch_optional(&state.db)
+    .await?;
+
+    let prev_hash = last_record
+        .map(|r| r.current_hash)
+        .unwrap_or_else(|| "GENESIS".to_string());
+
+    let data_to_hash = format!("{}{}{}", repo_name, serde_json::to_string(&result)?, prev_hash);
+    let new_hash = hash::generate_hash(&data_to_hash);
+
     // Store in database
-    sqlx::query(
+    sqlx::query!(
         r#"
         INSERT INTO audit_logs 
-        (repo_name, pr_number, status, risk_score, report, created_at) 
-        VALUES ($1, $2, $3, $4, $5, NOW())
-        "#
+        (repo_name, pr_number, status, risk_score, report, previous_hash, current_hash)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        "#,
+        repo_name,
+        pr_number as i32,
+        result.status,
+        result.risk_score as i32,
+        serde_json::to_value(&result)?,
+        prev_hash,
+        new_hash
     )
-    .bind(&repo_name)
-    .bind(pr_number as i32)
-    .bind(&result.status)
-    .bind(result.risk_score as i32)
-    .bind(serde_json::to_value(&result)?)
     .execute(&state.db)
     .await
     .context("Failed to insert audit log")?;
 
-    info!(
-        "Audit log stored for PR #{}/{}",
-        repo_name, pr_number
-    );
+    info!("Audit log stored for PR #{}/{}", repo_name, pr_number);
 
     // Post review to GitHub
     github::post_review(&octo, &owner, &repo_name, pr_number, &result)
         .await
         .context("Failed to post review")?;
 
-    info!(
-        "Review posted for PR #{}/{}",
-        repo_name, pr_number
-    );
+    info!("Review posted for PR #{}/{}", repo_name, pr_number);
 
     Ok(())
 }
