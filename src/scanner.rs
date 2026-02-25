@@ -5,16 +5,14 @@ use std::process::Command;
 pub fn deterministic_scan(diff: &str) -> Vec<Issue> {
     let mut issues = vec![];
 
-    let phi_pattern = Regex::new(
-        r"(?i)(ssn|patient_id|patient|heart_rate|dob|diagnosis|medical_record|name)"
-    ).unwrap();
-    let logging_pattern = Regex::new(
-        r"(println!|info!|debug!|warn!|tracing::)"
-    ).unwrap();
-    let unsafe_pattern = Regex::new(r"\bunsafe\s*\{").unwrap();
-    let hardcoded_pattern = Regex::new(
-        r#"(?i)(password|secret|api_key|token)\s*=\s*"[^"]+""#
-    ).unwrap();
+    let phi_pattern =
+        Regex::new(r"(?i)(ssn|patient_id|patient|heart_rate|dob|diagnosis|medical_record|name)")
+            .expect("failed to compile PHI regex");
+    let logging_pattern = Regex::new(r"(println!|info!|debug!|warn!|tracing::)")
+        .expect("failed to compile logging regex");
+    let unsafe_pattern = Regex::new(r"\bunsafe\s*\{").expect("failed to compile unsafe regex");
+    let hardcoded_pattern = Regex::new(r#"(?i)(password|secret|api_key|token)\s*=\s*"[^"]+""#)
+        .expect("failed to compile hardcoded-secret regex");
 
     for (i, line) in diff.lines().enumerate() {
         // PHI being logged

@@ -1,11 +1,11 @@
 use dotenvy::dotenv;
 use sqlx::PgPool;
+mod audit;
 mod fips;
 mod github;
+mod hash;
 mod models;
 mod scanner;
-mod audit;
-mod hash;
 
 use anyhow::Context;
 use axum::{
@@ -21,7 +21,8 @@ use jsonwebtoken::EncodingKey;
 use octocrab::Octocrab;
 use secrecy::{ExposeSecret, SecretString};
 use sha2::Sha256;
-use sqlx::postgres::PgPoolOptions;
+use sqlx::postgres::{PgPoolOptions, PgRow};
+use sqlx::Row;
 use std::sync::Arc;
 use subtle::ConstantTimeEq;
 use tracing::info;
@@ -63,8 +64,7 @@ async fn main() -> anyhow::Result<()> {
     info!("Database connection established");
 
     let webhook_secret = SecretString::new(
-        std::env::var("GITHUB_WEBHOOK_SECRET")
-            .context("GITHUB_WEBHOOK_SECRET must be set")?
+        std::env::var("GITHUB_WEBHOOK_SECRET").context("GITHUB_WEBHOOK_SECRET must be set")?,
     );
 
     let app_id = std::env::var("GITHUB_APP_ID")
@@ -72,8 +72,8 @@ async fn main() -> anyhow::Result<()> {
         .parse()
         .context("GITHUB_APP_ID must be a valid u64")?;
 
-    let private_key_path = std::env::var("PRIVATE_KEY_PATH")
-        .context("PRIVATE_KEY_PATH must be set")?;
+    let private_key_path =
+        std::env::var("PRIVATE_KEY_PATH").context("PRIVATE_KEY_PATH must be set")?;
 
     let private_key = std::fs::read(&private_key_path)
         .with_context(|| format!("Failed to read private key from {}", private_key_path))?;
@@ -99,9 +99,7 @@ async fn main() -> anyhow::Result<()> {
         .await
         .context("Failed to bind to address")?;
 
-    axum::serve(listener, app)
-        .await
-        .context("Server error")?;
+    axum::serve(listener, app).await.context("Server error")?;
 
     Ok(())
 }
@@ -192,7 +190,10 @@ async fn process_pull_request(
 
     let action = payload["action"].as_str().unwrap_or("unknown");
 
-    info!("Processing PR #{} in {} (action: {})", pr_number, repo_name, action);
+    info!(
+        "Processing PR #{} in {} (action: {})",
+        pr_number, repo_name, action
+    );
 
     // Only process opened and synchronize actions
     if action != "opened" && action != "synchronize" {
@@ -201,8 +202,8 @@ async fn process_pull_request(
     }
 
     // Build GitHub client
-    let app_key = EncodingKey::from_rsa_pem(&state.private_key)
-        .context("Failed to create RSA key")?;
+    let app_key =
+        EncodingKey::from_rsa_pem(&state.private_key).context("Failed to create RSA key")?;
 
     let installation_id = octocrab::models::InstallationId(installation_id);
 
@@ -212,9 +213,7 @@ async fn process_pull_request(
         .context("Failed to build GitHub client")?
         .installation(installation_id);
 
-    let (owner, repo) = repo_name
-        .split_once('/')
-        .context("Invalid repo format")?;
+    let (owner, repo) = repo_name.split_once('/').context("Invalid repo format")?;
 
     // Get PR diff
     let diff = github::get_pr_diff(&octo, owner, repo, pr_number)
@@ -227,38 +226,42 @@ async fn process_pull_request(
         .context("Failed to process diff")?;
 
     // Build audit chain hash
-    let last_record = sqlx::query!(
-        "SELECT current_hash FROM audit_logs ORDER BY created_at DESC LIMIT 1"
-    )
-    .fetch_optional(&state.db)
-    .await?;
+    let last_record: Option<PgRow> =
+        sqlx::query("SELECT current_hash FROM audit_logs ORDER BY created_at DESC LIMIT 1")
+            .fetch_optional(&state.db)
+            .await?;
 
-    let prev_hash = last_record
-        .map(|r| r.current_hash)
-        .unwrap_or_else(|| "GENESIS".to_string());
+    let prev_hash = if let Some(row) = last_record {
+        row.try_get::<String, _>("current_hash")?
+    } else {
+        "GENESIS".to_string()
+    };
 
-let entry = audit::AuditEntry::new(
-    &format!("{}{}", repo_name, serde_json::to_string(&result)?),
-    &prev_hash,
-);
-let new_hash = entry.entry_hash.clone();
-info!("Audit chain — data_hash: {}, prev: {}", entry.data_hash, entry.previous_hash);
+    let entry = audit::AuditEntry::new(
+        &format!("{}{}", repo_name, serde_json::to_string(&result)?),
+        &prev_hash,
+    );
+    let new_hash = entry.entry_hash.clone();
+    info!(
+        "Audit chain — data_hash: {}, prev: {}",
+        entry.data_hash, entry.previous_hash
+    );
 
     // Save to database
-    sqlx::query!(
+    sqlx::query(
         r#"
-        INSERT INTO audit_logs 
+        INSERT INTO audit_logs
         (repo_name, pr_number, status, risk_score, report, previous_hash, current_hash)
         VALUES ($1, $2, $3, $4, $5, $6, $7)
         "#,
-        repo_name,
-        pr_number as i32,
-        result.status,
-        result.risk_score as i32,
-        serde_json::to_value(&result)?,
-        prev_hash,
-        new_hash
     )
+    .bind(repo_name)
+    .bind(pr_number as i32)
+    .bind(result.status)
+    .bind(result.risk_score as i32)
+    .bind(serde_json::to_value(&result)?)
+    .bind(prev_hash)
+    .bind(new_hash)
     .execute(&state.db)
     .await
     .context("Failed to insert audit log")?;

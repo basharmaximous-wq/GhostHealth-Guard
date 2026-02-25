@@ -1,19 +1,19 @@
 // ─────────────────────────────────────────────
 // Core security logic
 // ─────────────────────────────────────────────
-pub mod scanner;
 pub mod audit;
 pub mod models;
 pub mod remediation;
+pub mod scanner;
 
 // Cryptography & integrity
+pub mod fips;
 pub mod hash;
 pub mod zk;
-pub mod fips;
 
 // External integrations
-pub mod github;
 pub mod blockchain;
+pub mod github;
 
 // Domain logic
 pub mod patient_processor;
@@ -32,9 +32,8 @@ pub use scanner::*;
 // Imports
 // ─────────────────────────────────────────────
 use anyhow::Context;
-use axum::http::HeaderMap;
 use axum::body::Bytes;
-use hex;
+use axum::http::HeaderMap;
 use hmac::{Hmac, Mac};
 use jsonwebtoken::EncodingKey;
 use octocrab::models::{Installation, InstallationId};
@@ -127,8 +126,7 @@ impl WebhookEvent {
         )
         .context("Invalid hex in signature")?;
 
-        let mut mac = Hmac::<Sha256>::new_from_slice(secret)
-            .context("Failed to create HMAC")?;
+        let mut mac = Hmac::<Sha256>::new_from_slice(secret).context("Failed to create HMAC")?;
         mac.update(body);
         mac.verify_slice(&sig_bytes)
             .context("Webhook signature mismatch — invalid secret or payload")?;
@@ -196,11 +194,7 @@ impl WebhookEvent {
 // ─────────────────────────────────────────────
 // Webhook signature verification
 // ─────────────────────────────────────────────
-pub fn verify_webhook(
-    state: &AppState,
-    headers: &HeaderMap,
-    body: &Bytes,
-) -> anyhow::Result<()> {
+pub fn verify_webhook(state: &AppState, headers: &HeaderMap, body: &Bytes) -> anyhow::Result<()> {
     let signature = headers
         .get("X-Hub-Signature-256")
         .and_then(|v| v.to_str().ok())
@@ -213,8 +207,8 @@ pub fn verify_webhook(
     )
     .context("Invalid hex in signature")?;
 
-    let mut mac = Hmac::<Sha256>::new_from_slice(&state.webhook_secret)
-        .context("Failed to create HMAC")?;
+    let mut mac =
+        Hmac::<Sha256>::new_from_slice(&state.webhook_secret).context("Failed to create HMAC")?;
     mac.update(body);
     mac.verify_slice(&sig_bytes)
         .context("Webhook signature verification failed")?;
@@ -225,15 +219,10 @@ pub fn verify_webhook(
 // ─────────────────────────────────────────────
 // Pull Request processor
 // ─────────────────────────────────────────────
-pub async fn process_pull_request(
-    state: Arc<AppState>,
-    event: WebhookEvent,
-) -> anyhow::Result<()> {
+pub async fn process_pull_request(state: Arc<AppState>, event: WebhookEvent) -> anyhow::Result<()> {
     let repo = event.repository.context("No repository in event")?;
 
-    let pr_payload = match event.spec {
-        WebhookEventPayload::PullRequest(p) => p,
-    };
+    let WebhookEventPayload::PullRequest(pr_payload) = event.spec;
 
     let repo_name = repo.name.clone();
     let pr_number = pr_payload.pull_request.number;
