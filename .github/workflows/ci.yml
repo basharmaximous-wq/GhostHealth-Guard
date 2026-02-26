@@ -5,7 +5,9 @@ on:
     branches: [master]
   pull_request:
     branches: [master]
-
+permissions:
+  contents: read
+  
 env:
   CARGO_TERM_COLOR: always
 
@@ -24,7 +26,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: Format code
-        run: cargo fmt --all
+        run: cargo fmt --all -- --check
 
       - name: Clippy
         run: cargo clippy --workspace --lib --tests -- -D warnings
