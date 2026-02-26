@@ -1,6 +1,7 @@
 use crate::hash::generate_hash;
 use crate::models::{AuditResult, Issue};
 use anyhow::Context;
+use std::sync::OnceLock;
 use serde_json::json;
 use tokio::time::{sleep, Duration};
 
@@ -22,11 +23,13 @@ impl AuditEntry {
     }
 }
 
+static CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
+
 pub async fn llm_review(diff: &str) -> anyhow::Result<AuditResult> {
     let key = std::env::var("GEMINI_API_KEY")
         .context("GEMINI_API_KEY not set")?;
 
-    let client = reqwest::Client::new();
+    let client = CLIENT.get_or_init(reqwest::Client::new);
 
     // FIXED: Using the standard 'gemini-1.5-flash' for maximum compatibility
     let url = format!(
@@ -86,7 +89,7 @@ pub async fn llm_review(diff: &str) -> anyhow::Result<AuditResult> {
         }
 
         if let Some(candidates) = body["candidates"].as_array() {
-            if let Some(finish_reason) = candidates.first().and_then(|c| c["finishReason"].as_str())
+            if let Some(finish_reason) = candidates.first().and_then(|c| c["finishReason"].as_str()) {
                 if finish_reason == "SAFETY" {
                     return Ok(AuditResult {
                         status: "BLOCKED".to_string(),

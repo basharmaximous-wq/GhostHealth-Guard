@@ -1,21 +1,20 @@
 use crate::models::Issue;
 use regex::Regex;
 use std::process::Command;
+use std::sync::OnceLock;
+
+static PHI_RE: OnceLock<Regex> = OnceLock::new();
+static LOGGING_RE: OnceLock<Regex> = OnceLock::new();
+static UNSAFE_RE: OnceLock<Regex> = OnceLock::new();
+static HARDCODED_RE: OnceLock<Regex> = OnceLock::new();
 
 pub fn deterministic_scan(diff: &str) -> Vec<Issue> {
     let mut issues = vec![];
 
-    let (phi_pattern, logging_pattern, unsafe_pattern, hardcoded_pattern) = match (
-        Regex::new(r"(?i)(ssn|patient_id|patient|heart_rate|dob|diagnosis|medical_record|name)"),
-        Regex::new(r"(println!|info!|debug!|warn!|tracing::)"),
-        Regex::new(r"\bunsafe\s*\{"),
-        Regex::new(r#"(?i)(password|secret|api_key|token)\s*=\s*"[^"]+""#),
-    ) {
-        (Ok(phi), Ok(logging), Ok(unsafe_re), Ok(hardcoded)) => {
-            (phi, logging, unsafe_re, hardcoded)
-        }
-        _ => return issues,
-    };
+    let phi_pattern = PHI_RE.get_or_init(|| Regex::new(r"(?i)(ssn|patient_id|patient|heart_rate|dob|diagnosis|medical_record|name)").expect("Invalid PHI regex"));
+    let logging_pattern = LOGGING_RE.get_or_init(|| Regex::new(r"(println!|info!|debug!|warn!|tracing::)").expect("Invalid logging regex"));
+    let unsafe_pattern = UNSAFE_RE.get_or_init(|| Regex::new(r"\bunsafe\s*\{").expect("Invalid unsafe regex"));
+    let hardcoded_pattern = HARDCODED_RE.get_or_init(|| Regex::new(r#"(?i)(password|secret|api_key|token)\s*=\s*"[^"]+""#).expect("Invalid hardcoded secret regex"));
 
     for (i, line) in diff.lines().enumerate() {
         // PHI being logged
