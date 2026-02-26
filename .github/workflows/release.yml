@@ -2,8 +2,8 @@ name: Multi-Arch Release
 
 on:
   push:
-    tags:
-      - "v*"
+   branches: [master]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -20,7 +20,7 @@ jobs:
           - target: aarch64-apple-darwin
             runs-on: macos-latest
 
-    uses: ./.github/workflows/build-reusable.yml
+    uses: ./.github/workflows/linux-build-reusable.yml
     with:
       target: ${{ matrix.target }}
       runs-on: ${{ matrix.runs-on }}
