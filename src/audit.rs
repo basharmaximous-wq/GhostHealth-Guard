@@ -86,7 +86,7 @@ pub async fn llm_review(diff: &str) -> anyhow::Result<AuditResult> {
         }
 
         if let Some(candidates) = body["candidates"].as_array() {
-            if let Some(finish_reason) = candidates.get(0).and_then(|c| c["finishReason"].as_str()) {
+            if let Some(finish_reason) = candidates.first().and_then(|c| c["finishReason"].as_str())
                 if finish_reason == "SAFETY" {
                     return Ok(AuditResult {
                         status: "BLOCKED".to_string(),
