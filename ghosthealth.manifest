@@ -1,0 +1,4 @@
+loader.entrypoint = "/app/ghosthealth"
+sgx.enclave_size = "2G"
+sgx.thread_num = 8
+sgx.debug = false

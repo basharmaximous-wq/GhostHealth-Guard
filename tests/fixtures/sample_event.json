@@ -1,0 +1,6 @@
+{
+  "event_id": "EVT-001",
+  "document_hash": "abc123",
+  "timestamp": "2026-01-01T00:00:00Z",
+  "type": "DOCUMENT_NOTARIZED"
+}

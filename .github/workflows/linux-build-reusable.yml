@@ -1,0 +1,36 @@
+name: Build Reusable
+
+on:
+  workflow_call:
+    inputs:
+      target:
+        required: true
+        type: string
+      runs-on:
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: ${{ inputs.runs-on }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ inputs.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ inputs.target }}
+
+      - name: Build
+        run: cargo build --release --target ${{ inputs.target }} --all-features
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ghosthealth-guard-${{ inputs.target }}
+          path: target/${{ inputs.target }}/release/ghosthealth-guard
+          if-no-files-found: error

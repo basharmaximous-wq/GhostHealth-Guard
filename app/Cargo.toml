@@ -1,0 +1,6 @@
+[dependencies]
+# ... your other crates like axum, tokio, etc.
+syn = { version = "2.0", features = ["full"] }
+quote = "1.0"
+walkdir = "2.0"
+sha2 = "0.10"
