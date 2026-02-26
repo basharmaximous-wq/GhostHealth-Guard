@@ -34,7 +34,11 @@ pub async fn open_remediation_pr(
     let base_sha = match base_ref.object {
         octocrab::models::repos::Object::Commit { sha, .. }
         | octocrab::models::repos::Object::Tag { sha, .. } => sha,
-        _ => return Err(anyhow::anyhow!("Unsupported reference object returned by GitHub")),
+        _ => {
+            return Err(anyhow::anyhow!(
+                "Unsupported reference object returned by GitHub"
+            ))
+        }
     };
 
     // Create branch if it doesn't exist
@@ -60,10 +64,9 @@ pub async fn open_remediation_pr(
 
     match existing_file {
         Ok(page) => {
-            let file = page
-                .items
-                .first()
-                .ok_or_else(|| anyhow::anyhow!("Expected existing file metadata for {}", target_path))?;
+            let file = page.items.first().ok_or_else(|| {
+                anyhow::anyhow!("Expected existing file metadata for {}", target_path)
+            })?;
 
             client
                 .repos(owner, repo)
@@ -92,16 +95,16 @@ pub async fn open_remediation_pr(
     }
 
     // Create the pull request - CORRECT for octocrab 0.38
-client
-    .pulls(owner, repo)
-    .create(
-        "Compliance Fix: Remove PHI logging",  // Title FIRST
-        branch_name,                            // Head branch (your feature branch)
-        base_branch                             // Base branch (where to merge into)
-    )
-    .body("Automated remediation for PHI leak")
-    .send()
-    .await?;
+    client
+        .pulls(owner, repo)
+        .create(
+            "Compliance Fix: Remove PHI logging", // Title FIRST
+            branch_name,                          // Head branch (your feature branch)
+            base_branch,                          // Base branch (where to merge into)
+        )
+        .body("Automated remediation for PHI leak")
+        .send()
+        .await?;
 
     Ok(())
 }

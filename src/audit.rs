@@ -1,13 +1,15 @@
 use crate::hash::generate_hash;
 use crate::models::{AuditResult, Issue};
 use anyhow::Context;
-use std::sync::OnceLock;
 use serde_json::json;
+use std::sync::OnceLock;
 use tokio::time::{sleep, Duration};
 
 pub struct AuditEntry {
+    #[allow(dead_code)]
     pub data_hash: String,
     pub entry_hash: String,
+    #[allow(dead_code)]
     pub previous_hash: String,
 }
 
@@ -26,8 +28,7 @@ impl AuditEntry {
 static CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
 
 pub async fn llm_review(diff: &str) -> anyhow::Result<AuditResult> {
-    let key = std::env::var("GEMINI_API_KEY")
-        .context("GEMINI_API_KEY not set")?;
+    let key = std::env::var("GEMINI_API_KEY").context("GEMINI_API_KEY not set")?;
 
     let client = CLIENT.get_or_init(reqwest::Client::new);
 
@@ -75,21 +76,32 @@ pub async fn llm_review(diff: &str) -> anyhow::Result<AuditResult> {
 
         if (status.as_u16() == 429 || status.is_server_error()) && attempts < max_attempts {
             let wait_secs = attempts * 2;
-            tracing::warn!("Gemini API busy ({}). Retry attempt {}/{} in {}s...", status, attempts, max_attempts, wait_secs);
+            tracing::warn!(
+                "Gemini API busy ({}). Retry attempt {}/{} in {}s...",
+                status,
+                attempts,
+                max_attempts,
+                wait_secs
+            );
             sleep(Duration::from_secs(wait_secs)).await;
             continue;
         }
 
-        let body = response.json::<serde_json::Value>().await
+        let body = response
+            .json::<serde_json::Value>()
+            .await
             .context("Failed to parse Gemini response")?;
 
         if !status.is_success() {
-            let error = body["error"]["message"].as_str().unwrap_or("Unknown API error");
+            let error = body["error"]["message"]
+                .as_str()
+                .unwrap_or("Unknown API error");
             anyhow::bail!("Gemini API error: {}", error);
         }
 
         if let Some(candidates) = body["candidates"].as_array() {
-            if let Some(finish_reason) = candidates.first().and_then(|c| c["finishReason"].as_str()) {
+            if let Some(finish_reason) = candidates.first().and_then(|c| c["finishReason"].as_str())
+            {
                 if finish_reason == "SAFETY" {
                     return Ok(AuditResult {
                         status: "BLOCKED".to_string(),
