@@ -64,7 +64,7 @@ async fn main() -> anyhow::Result<()> {
 
     let db = PgPoolOptions::new()
         .max_connections(5)
-        .acquire_timeout(std::time::Duration::from_secs(30)) 
+        .acquire_timeout(std::time::Duration::from_secs(30))
         .connect(&database_url)
         .await
         .context("Failed to connect to database on Port 5433")?;
@@ -81,11 +81,15 @@ async fn main() -> anyhow::Result<()> {
         .parse()
         .unwrap_or(0);
 
-    let private_key_path = std::env::var("PRIVATE_KEY_PATH").unwrap_or_else(|_| "key.pem".to_string());
+    let private_key_path =
+        std::env::var("PRIVATE_KEY_PATH").unwrap_or_else(|_| "key.pem".to_string());
 
     // Try to read key, but don't crash if it's missing during local testing
     let private_key = std::fs::read(&private_key_path).unwrap_or_else(|_| {
-        tracing::warn!("Private key not found at {}. Using empty key for testing.", private_key_path);
+        tracing::warn!(
+            "Private key not found at {}. Using empty key for testing.",
+            private_key_path
+        );
         vec![]
     });
 
@@ -127,7 +131,7 @@ async fn handle_webhook(
     body: Bytes,
 ) -> impl IntoResponse {
     // SECURITY BYPASS: If verification fails, we log it but KEEP GOING for testing
-    if let Err(_) = verify_webhook(&state, &headers, &body) {
+    if verify_webhook(&state, &headers, &body).is_err() {
         tracing::warn!("Webhook verification failed (Bypassing for local testing)");
     }
 
@@ -164,7 +168,7 @@ async fn handle_webhook(
 fn verify_webhook(state: &AppState, headers: &HeaderMap, body: &Bytes) -> Result<(), ()> {
     let sig = match headers.get("X-Hub-Signature-256") {
         Some(s) => s.to_str().map_err(|_| ())?,
-        None => return Err(()), 
+        None => return Err(()),
     };
 
     let remote = sig.strip_prefix("sha256=").ok_or(())?;
@@ -193,7 +197,10 @@ async fn process_pull_request(
     let installation_id = payload["installation"]["id"].as_u64().unwrap_or(0);
     let action = payload["action"].as_str().unwrap_or("opened");
 
-    info!("Processing PR #{} in {} (action: {})", pr_number, repo_name, action);
+    info!(
+        "Processing PR #{} in {} (action: {})",
+        pr_number, repo_name, action
+    );
 
     // TEST MODE: Hardcoded leak for Gemini AI to discover
     let diff = "
@@ -202,7 +209,8 @@ async fn process_pull_request(
 +    let name = \"John Ghost\";
 +    println!(\"Checking record for {}\", name);
 + }
-".to_string();
+"
+    .to_string();
 
     // 1. Run AI Analysis
     let result = github::process_diff(&diff)
@@ -251,7 +259,10 @@ async fn process_pull_request(
     .execute(&state.db)
     .await?;
 
-    info!("SUCCESS: Audit log with hash {} saved to database", entry.entry_hash);
+    info!(
+        "SUCCESS: Audit log with hash {} saved to database",
+        entry.entry_hash
+    );
 
     // 4. GitHub Review (Wrapped in error handling so local runs don't crash without real keys)
     if !state.private_key.is_empty() {
