@@ -1,6 +1,6 @@
 use dotenvy::dotenv;
-use sqlx::PgPool;
 use ghosthealth_guard::*;
+use sqlx::PgPool;
 
 use anyhow::Context;
 use axum::{
