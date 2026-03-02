@@ -3,18 +3,45 @@ use regex::Regex;
 use std::process::Command;
 use std::sync::OnceLock;
 
-static PHI_RE: OnceLock<Regex> = OnceLock::new();
-static LOGGING_RE: OnceLock<Regex> = OnceLock::new();
-static UNSAFE_RE: OnceLock<Regex> = OnceLock::new();
-static HARDCODED_RE: OnceLock<Regex> = OnceLock::new();
+static PHI_RE: OnceLock<Option<Regex>> = OnceLock::new();
+static LOGGING_RE: OnceLock<Option<Regex>> = OnceLock::new();
+static UNSAFE_RE: OnceLock<Option<Regex>> = OnceLock::new();
+static HARDCODED_RE: OnceLock<Option<Regex>> = OnceLock::new();
 
 pub fn deterministic_scan(diff: &str) -> Vec<Issue> {
     let mut issues = vec![];
 
-    let phi_pattern = PHI_RE.get_or_init(|| Regex::new(r"(?i)(ssn|patient_id|patient|heart_rate|dob|diagnosis|medical_record|name)").expect("Invalid PHI regex"));
-    let logging_pattern = LOGGING_RE.get_or_init(|| Regex::new(r"(println!|info!|debug!|warn!|tracing::)").expect("Invalid logging regex"));
-    let unsafe_pattern = UNSAFE_RE.get_or_init(|| Regex::new(r"\bunsafe\s*\{").expect("Invalid unsafe regex"));
-    let hardcoded_pattern = HARDCODED_RE.get_or_init(|| Regex::new(r#"(?i)(password|secret|api_key|token)\s*=\s*"[^"]+""#).expect("Invalid hardcoded secret regex"));
+    let phi_pattern = match PHI_RE
+        .get_or_init(|| {
+            Regex::new(r"(?i)(ssn|patient_id|patient|heart_rate|dob|diagnosis|medical_record|name)")
+                .ok()
+        })
+        .as_ref()
+    {
+        Some(re) => re,
+        None => return issues,
+    };
+    let logging_pattern = match LOGGING_RE
+        .get_or_init(|| Regex::new(r"(println!|info!|debug!|warn!|tracing::)").ok())
+        .as_ref()
+    {
+        Some(re) => re,
+        None => return issues,
+    };
+    let unsafe_pattern = match UNSAFE_RE
+        .get_or_init(|| Regex::new(r"\bunsafe\s*\{").ok())
+        .as_ref()
+    {
+        Some(re) => re,
+        None => return issues,
+    };
+    let hardcoded_pattern = match HARDCODED_RE
+        .get_or_init(|| Regex::new(r#"(?i)(password|secret|api_key|token)\s*=\s*"[^"]+""#).ok())
+        .as_ref()
+    {
+        Some(re) => re,
+        None => return issues,
+    };
 
     for (i, line) in diff.lines().enumerate() {
         // PHI being logged
@@ -48,6 +75,7 @@ pub fn deterministic_scan(diff: &str) -> Vec<Issue> {
     issues
 }
 
+#[allow(dead_code)]
 pub fn run_semgrep() -> Vec<Issue> {
     let output = Command::new("semgrep")
         .args(["--config", "semgrep/phi_rules.yml", "--json", "."])
