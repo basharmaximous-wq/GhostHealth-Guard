@@ -42,7 +42,10 @@ jobs:
         run: |
           cd artifacts
           for dir in */; do
-            tar -czf "${dir%/}.tar.gz" -C "$dir" ghosthealth-guard
+            # Remove trailing slash
+            dirname="${dir%/}"
+            echo "Packaging $dirname..."
+            tar -czf "${dirname}.tar.gz" -C "$dirname" ghosthealth-guard
           done
 
       - name: Create Release
