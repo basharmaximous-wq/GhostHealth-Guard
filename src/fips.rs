@@ -2,13 +2,14 @@
 #[cfg(feature = "fips")]
 use openssl::provider::Provider;
 
-pub fn enable_fips() {
+pub fn enable_fips() -> anyhow::Result<()> {
     #[cfg(feature = "fips")]
     {
         // Load FIPS provider
-        Provider::load(None, "fips").expect("FIPS provider load failed");
+        Provider::load(None, "fips").map_err(|e| anyhow::anyhow!("FIPS provider load failed: {}", e))?;
         println!("✅ FIPS mode enabled. Only approved algorithms are allowed.");
     }
+    Ok(())
 }
 
 // Example algorithm enforcement
