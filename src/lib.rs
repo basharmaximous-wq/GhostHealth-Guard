@@ -11,6 +11,13 @@ pub mod fips;
 pub mod hash;
 pub mod zk;
 
+pub mod db;
+// pub mod enclave;
+// pub mod anomaly;
+// pub mod zk_circuit;
+// pub mod vector_store;
+// pub mod soc2;
+
 // External integrations
 pub mod blockchain;
 pub mod github;
