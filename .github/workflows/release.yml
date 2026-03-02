@@ -2,10 +2,8 @@ name: Multi-Arch Release
 
 on:
   push:
-    tags:
-      - 'v*'  # Trigger on version tags
-      - '*'   # Or any tag
-  workflow_dispatch:  # Keep manual trigger
+    branches: [master]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -29,8 +27,6 @@ jobs:
 
   release:
     needs: build
-    # Optional: Add condition to ensure we're on a tag or manual trigger
-    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -38,18 +34,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/download-artifact@v4
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
         with:
           path: ./artifacts
 
       - name: Package
+        shell: bash
         run: |
           cd artifacts
           for dir in */; do
-            # Remove trailing slash
             dirname="${dir%/}"
             echo "Packaging $dirname..."
-            tar -czf "${dirname}.tar.gz" -C "$dirname" ghosthealth-guard
+            # Using '.' ensures we grab the binary inside the folder 
+            # regardless of the specific filename
+            tar -czf "${dirname}.tar.gz" -C "$dirname" .
           done
 
       - name: Create Release
@@ -57,3 +56,8 @@ jobs:
         with:
           files: artifacts/*.tar.gz
           generate_release_notes: true
+          # FIX: This uses 'latest' as the tag so it never fails on master push
+          tag_name: latest
+          name: Latest Release Build
+          # Overwrites the same release instead of creating 100 separate ones
+          make_latest: true
