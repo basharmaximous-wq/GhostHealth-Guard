@@ -2,8 +2,10 @@ name: Multi-Arch Release
 
 on:
   push:
-   branches: [master]
-  workflow_dispatch:
+    tags:
+      - 'v*'  # Trigger on version tags
+      - '*'   # Or any tag
+  workflow_dispatch:  # Keep manual trigger
 
 jobs:
   build:
@@ -27,6 +29,8 @@ jobs:
 
   release:
     needs: build
+    # Optional: Add condition to ensure we're on a tag or manual trigger
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: write
