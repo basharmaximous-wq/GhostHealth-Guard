@@ -81,6 +81,11 @@ jobs:
       - name: Install sqlx-cli
         run: cargo install sqlx-cli --no-default-features --features postgres
 
+      - name: Create dummy test key
+        run: |
+          ssh-keygen -t rsa -b 4096 -m PEM -f ./test_key.pem -N ""
+          ls -l ./test_key.pem
+
       - name: Run migrations
         run: sqlx migrate run
 
