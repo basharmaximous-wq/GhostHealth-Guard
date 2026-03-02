@@ -44,5 +44,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ghosthealth-guard-${{ inputs.target }}
-          path: target/${{ inputs.target }}/release/ghosthealth-guard
+          path: |
+            target/${{ inputs.target }}/release/ghosthealth-guard
+            target/${{ inputs.target }}/release/ghosthealth-guard.exe
           if-no-files-found: error

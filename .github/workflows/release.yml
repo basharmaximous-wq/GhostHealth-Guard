@@ -19,6 +19,8 @@ jobs:
             runs-on: macos-latest
           - target: aarch64-apple-darwin
             runs-on: macos-latest
+          - target: x86_64-pc-windows-msvc
+            runs-on: windows-latest
 
     uses: ./.github/workflows/linux-build-reusable.yml
     with:
@@ -45,11 +47,17 @@ jobs:
             # Remove trailing slash
             dirname="${dir%/}"
             echo "Packaging $dirname..."
-            tar -czf "${dirname}.tar.gz" -C "$dirname" ghosthealth-guard
+            if [ -f "$dirname/ghosthealth-guard.exe" ]; then
+              zip -j "${dirname}.zip" "$dirname/ghosthealth-guard.exe"
+            else
+              tar -czf "${dirname}.tar.gz" -C "$dirname" ghosthealth-guard
+            fi
           done
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: artifacts/*.tar.gz
+          files: |
+            artifacts/*.tar.gz
+            artifacts/*.zip
           generate_release_notes: true
