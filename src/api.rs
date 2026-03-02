@@ -7,6 +7,8 @@ pub struct DocumentRequest {
     pub document: String,
 }
 
+
+
 #[derive(Serialize)]
 pub struct DocumentResponse {
     pub hash: String,
