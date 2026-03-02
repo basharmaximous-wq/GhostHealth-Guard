@@ -6,7 +6,8 @@ pub fn enable_fips() -> anyhow::Result<()> {
     #[cfg(feature = "fips")]
     {
         // Load FIPS provider
-        Provider::load(None, "fips").map_err(|e| anyhow::anyhow!("FIPS provider load failed: {}", e))?;
+        Provider::load(None, "fips")
+            .map_err(|e| anyhow::anyhow!("FIPS provider load failed: {}", e))?;
         println!("✅ FIPS mode enabled. Only approved algorithms are allowed.");
     }
     Ok(())
