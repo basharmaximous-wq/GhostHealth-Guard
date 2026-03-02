@@ -1,5 +1,4 @@
 # 🛡️ GhostHealth Guard
-![GhostHealth Logo](https://raw.githubusercontent.com/basharmaximous-wq/GhostHealth-Guard/master/docs/assets/logo.png)
 ### **Zero‑stress HIPAA compliance for Rust health‑tech teams.**
 
 ---
