@@ -1,5 +1,5 @@
-use proptest::prelude::*;
 use ghosthealth_guard::hash::generate_hash;
+use proptest::prelude::*;
 
 proptest! {
     #[test]
