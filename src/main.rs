@@ -1,11 +1,6 @@
 use dotenvy::dotenv;
 use sqlx::PgPool;
-mod audit;
-mod fips;
-mod github;
-mod hash;
-mod models;
-mod scanner;
+use ghosthealth_guard::*;
 
 use anyhow::Context;
 use axum::{
@@ -43,7 +38,7 @@ async fn main() -> anyhow::Result<()> {
     dotenv().ok();
 
     // 2. FIPS Security Compliance
-    fips::enable_fips();
+    fips::enable_fips().context("Failed to enable FIPS")?;
     fips::assert_fips_algorithm("AES-256-GCM");
 
     // 3. JSON Structured Logging
