@@ -3,6 +3,7 @@ use crate::{audit, scanner};
 use octocrab::Octocrab;
 use serde_json::json;
 
+#[allow(dead_code)]
 pub async fn get_pr_diff(
     client: &Octocrab,
     owner: &str,
@@ -15,10 +16,10 @@ pub async fn get_pr_diff(
 pub async fn process_diff(diff: &str) -> anyhow::Result<AuditResult> {
     // 1. Run deterministic regex scan
     let mut issues = scanner::deterministic_scan(diff);
-    
+
     // 2. Run LLM review (Gemini 1.5 Flash Free Tier)
     let mut ai = audit::llm_review(diff).await?;
-    
+
     // If AI was blocked, we still report what the regex found
     issues.append(&mut ai.issues);
 
@@ -64,12 +65,15 @@ pub async fn post_review(
     });
 
     let route = format!("/repos/{owner}/{repo}/pulls/{pr}/reviews");
-    
+
     // Post the review to GitHub
-    client.post::<_, serde_json::Value>(route, Some(&body)).await?;
-    
+    client
+        .post::<_, serde_json::Value>(route, Some(&body))
+        .await?;
+
     Ok(())
 }
+#[allow(dead_code)]
 pub fn post_review_dummy() {
     println!("Mocking GitHub Review: Analysis report would be posted here.");
 }
