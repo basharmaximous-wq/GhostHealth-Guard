@@ -79,7 +79,7 @@ Developer ──▶ GitHub PR ──▶ GhostHealth Scan ──▶ Flags Issues 
 |---|---|
 | 🐧 **Linux** | x86_64, AArch64 (Ubuntu / Debian / CentOS) |
 | 🍎 **macOS** | Intel & Apple Silicon (M1 / M2 / M3) |
-| 🪟 **Windows** | x86_64 (.exe) |
+
 
 **[⬇️ Download Latest Binary →](https://github.com/basharmaximous-wq/GhostHealth-Guard/releases/latest)**
 
