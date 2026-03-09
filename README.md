@@ -1,183 +1,1276 @@
-# 🛡️ GhostHealth Guard
-### **Zero‑stress HIPAA compliance for Rust health‑tech teams.**
-
----
-
-## 🚀 Catch HIPAA compliance issues before they cost you $50,000 — inside your GitHub PRs.
-
-GhostHealth Guard is the **invisible shield** for your Rust health-tech stack. It's an AI-powered sentinel that hunts for PHI leaks, enforces HIPAA-ready architecture, and silences privacy risks before they ever reach production.
-
----
-
-## 📈 Why this matters: The Cost of a Single Mistake
-In high-compliance industries like Health Informatics, a simple `println!` of a `PatientName` or `SocialSecurityNumber` can lead to **massive legal liabilities** and trust erosion.
-
-- **The Risk:** Standard linters don't understand the difference between a "Username" (public) and "PatientID" (PHI).
-- **The Gap:** A single accidental log entry can trigger **HIPAA fines starting at $50,000** per violation.
-- **The Solution:** A specialized, context-aware auditor that understands both Rust's memory safety and HIPAA/GDPR privacy requirements.
-
----
-
-## ⚙️ How it works: Multi-Layered Security
-
-1. **Static Privacy Scanning:** Uses custom Semgrep rules to catch hardcoded sensitive strings or unmasked logging of PHI.
-2. **AI-Powered Code Review:** A specialized LLM (Gemini 1.5 Flash/GPT-4o) reviews the logic for "Privacy Smells," such as unencrypted data transit or improper implementation of the `Debug` trait on sensitive data.
-3. **Architectural PHI Tracking:** Uses a Vector Database (RAG) to understand your codebase's data models. It knows if a struct is `#[Sensitive]` and flags any unsafe handling across the whole repo.
-4. **Confidential Computing:** Optional **SGX enclave** support for processing audit logs in a secure, hardware-isolated environment.
-5. **Immutable Audit Chain:** Every scan result is notarized on a blockchain and linked via **ZK-proofs**, ensuring your compliance history is tamper-proof for auditors.
-
-### **The Workflow**
-```text
-Developer ──▶ GitHub PR ──▶ GhostHealth Scan ──▶ Flags Issues ──▶ Secure Merge ✅
-                                    │
-                    ┌───────────────┼───────────────────┐
-                    ▼               ▼                   ▼
-             Static Scan       AI Review         Audit Chain
-           (Semgrep rules)  (Gemini/GPT-4o)   (ZK-proof hash)
-```
-
----
-
-## 🛡️ Core Security Features
-
-- **Zero-Knowledge (ZK) Proofs:** Verify compliance status without revealing sensitive code logic to third-party auditors.
-- **FIPS 140-2/3 Readiness:** Cryptographic modules designed to meet federal security standards.
-- **Hardware Enclaves (TEE):** Support for **Intel SGX**, ensuring audit logs are processed in a "Black Box" environment that even the Root user cannot access.
-- **Immutable Blockchain-Notarized Logs:** Every scan is chained cryptographically — no retroactive tampering.
-
----
-
-## 📋 HIPAA Production Readiness
-
-| HIPAA Safeguard | GhostHealth Guard Feature |
-|---|---|
-| Access Control (§164.312(a)(1)) | Automated SGX Enclave isolation for sensitive processing |
-| Audit Controls (§164.312(b)) | Immutable blockchain-notarized audit logs |
-| Integrity (§164.312(c)(1)) | ZK-Proofs ensuring scan results haven't been tampered with |
-| Transmission Security (§164.312(e)(1)) | Static analysis for TLS/SSL implementation errors |
-
----
-
-## 📦 Multi-Platform Support
-
-GhostHealth Guard is pre-compiled for high-performance execution on:
-- **Linux:** x86_64, AArch64 (Ubuntu/Debian/CentOS)
-- **macOS:** Intel & Apple Silicon (M1/M2/M3)
-- **Windows:** x86_64 (.exe)
-
-**Grab the latest binary from [Releases](https://github.com/basharmaximous-wq/GhostHealth-Guard/releases/latest).**
-
----
-
-## 🛠️ Installation
-
-### ⚡ Quick Start (No Rust required)
-1. Download the version for your OS from the [Latest Release](https://github.com/basharmaximous-wq/GhostHealth-Guard/releases/latest).
-2. Extract the file.
-3. Move `ghosthealth-guard` to your path (e.g., `/usr/local/bin` on Linux/macOS or add to `PATH` on Windows).
-4. Run `ghosthealth-guard --version` to verify.
-
-### 🦀 Build from Source
-```bash
-git clone https://github.com/basharmaximous-wq/GhostHealth-Guard.git
-cd GhostHealth-Guard
-cargo install --path .
-```
-
-### Configure Environment Variables
-Create a `.env` file with the following:
-```bash
-DATABASE_URL=postgres://user:pass@localhost:5432/ghostdb
-GEMINI_API_KEY=your_gemini_api_key_here
-GITHUB_APP_ID=your_app_id
-PRIVATE_KEY_PATH=path/to/key.pem
-```
-
-### Initialize Database
-```bash
-sqlx migrate run
-```
-
----
-
-## 💻 Using the App Locally
-
-You can run a standalone audit on any Rust file or directory:
-
-```bash
-ghosthealth-guard scan ./src --api-key $GEMINI_API_KEY
-```
-
-**Output Example:**
-```json
-{
-  "status": "VIOLATION",
-  "risk_score": 85,
-  "issues": [
-    {
-      "category": "PHI_LOGGING",
-      "severity": "HIGH",
-      "message": "PHI field 'ssn' logged at line 42 — HIPAA violation"
-    }
-  ]
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GhostHealth Guard — Zero-Stress HIPAA Compliance</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root {
+  --neon-cyan: #00ffe7;
+  --neon-green: #39ff14;
+  --neon-pink: #ff2d78;
+  --neon-blue: #0af;
+  --neon-purple: #bf5fff;
+  --dark-bg: #020812;
+  --card-bg: rgba(0,255,231,0.04);
+  --border-glow: rgba(0,255,231,0.25);
 }
-```
 
----
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-## 🔗 GitHub Integration Example
-Add this snippet to `.github/workflows/ghosthealth_check.yml` to automate compliance on every PR:
+html { scroll-behavior: smooth; }
 
-```yaml
-name: Compliance Audit
-on: [pull_request]
+body {
+  background: var(--dark-bg);
+  color: #c8f0ff;
+  font-family: 'Exo 2', sans-serif;
+  overflow-x: hidden;
+  min-height: 100vh;
+}
 
-jobs:
-  audit:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Run GhostHealth Guard
-        run: ghosthealth-guard scan-pr --pr-number ${{ github.event.number }}
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-```
+/* ── Animated star/particle background ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 10%, rgba(0,255,231,0.07) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 80%, rgba(0,170,255,0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 30% at 50% 50%, rgba(191,95,255,0.04) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+  animation: bgPulse 8s ease-in-out infinite alternate;
+}
 
-![Pull Request Comment Screenshot](https://raw.githubusercontent.com/basharmaximous-wq/GhostHealth-Guard/master/docs/assets/scan_result.png)
+@keyframes bgPulse {
+  0%   { opacity: 0.7; }
+  100% { opacity: 1; }
+}
 
----
+/* Scan-line overlay */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 3px,
+    rgba(0,255,231,0.012) 3px,
+    rgba(0,255,231,0.012) 4px
+  );
+  pointer-events: none;
+  z-index: 0;
+  animation: scanMove 10s linear infinite;
+}
+@keyframes scanMove {
+  0%   { background-position-y: 0; }
+  100% { background-position-y: 200px; }
+}
 
-## 💸 Why this saves money: The ROI of Privacy
-GhostHealth Guard isn't just a tool; it's an **insurance policy**.
+/* ── PARTICLES ── */
+#particles { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.particle {
+  position: absolute;
+  border-radius: 50%;
+  animation: floatParticle linear infinite;
+  opacity: 0;
+}
+@keyframes floatParticle {
+  0%   { transform: translateY(100vh) scale(0); opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 0.7; }
+  100% { transform: translateY(-10vh) scale(1.5); opacity: 0; }
+}
 
-| Scenario | Cost without Guard | Cost with GhostHealth Guard |
-|----------|-------------------|-----------------------------|
-| PHI Leak in Production | **$50,000+ Fine** | **$0** (Caught in PR) |
-| Manual Security Audit | **$10,000 / week** | **Included** (Auto-reports) |
-| Developer Time | **~5h / week** (Fixing leaks late) | **Minutes** (Fixing at source) |
+/* ── WRAPPER ── */
+.wrapper { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 0 24px; }
 
-**ROI:** A single caught violation pays for years of development and AI API costs.
+/* ── HERO ── */
+header {
+  text-align: center;
+  padding: 80px 24px 60px;
+  position: relative;
+  z-index: 1;
+}
 
----
+.badge {
+  display: inline-block;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.2em;
+  color: var(--neon-cyan);
+  border: 1px solid var(--neon-cyan);
+  padding: 5px 16px;
+  border-radius: 20px;
+  margin-bottom: 28px;
+  animation: badgePulse 2.5s ease-in-out infinite;
+  box-shadow: 0 0 12px rgba(0,255,231,0.4), inset 0 0 12px rgba(0,255,231,0.08);
+}
+@keyframes badgePulse {
+  0%, 100% { box-shadow: 0 0 12px rgba(0,255,231,0.4), inset 0 0 12px rgba(0,255,231,0.08); }
+  50%       { box-shadow: 0 0 28px rgba(0,255,231,0.9), inset 0 0 20px rgba(0,255,231,0.2); }
+}
 
-## 🧠 Who it's for:
-- 🦀 **Rust Health‑Tech Developers:** Building EHR systems, medical devices, or PHI-aware apps.
-- 🚀 **Startups:** Small teams that need to meet enterprise-grade compliance without a dedicated security staff.
-- 🌍 **Open‑Source Projects:** Protecting the integrity of decentralized or public health data.
+.hero-title {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 900;
+  font-size: clamp(2.8rem, 7vw, 5.5rem);
+  line-height: 1;
+  letter-spacing: 0.04em;
+  margin-bottom: 10px;
+  animation: titleReveal 1s ease-out both;
+}
+@keyframes titleReveal {
+  from { opacity: 0; transform: translateY(30px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 
----
+.glow-text {
+  color: var(--neon-cyan);
+  text-shadow:
+    0 0 10px var(--neon-cyan),
+    0 0 30px var(--neon-cyan),
+    0 0 60px rgba(0,255,231,0.5),
+    0 0 100px rgba(0,255,231,0.3);
+  animation: textGlow 3s ease-in-out infinite alternate;
+}
+@keyframes textGlow {
+  0%   { text-shadow: 0 0 10px var(--neon-cyan), 0 0 30px var(--neon-cyan), 0 0 60px rgba(0,255,231,0.5); }
+  100% { text-shadow: 0 0 20px var(--neon-cyan), 0 0 60px var(--neon-cyan), 0 0 100px rgba(0,255,231,0.8), 0 0 160px rgba(0,255,231,0.4); }
+}
 
-## ❓ Troubleshooting & FAQ
-- **Missing API key?** Ensure `GEMINI_API_KEY` or `OPENAI_API_KEY` is exported in your environment.
-- **Timeout on large repos?** Use the `--timeout` flag to increase processing time for deep architectural analysis.
-- **False positive?** Suppress specific warnings using the `#[allow(compliance_risk)]` or `#[ignore_compliance]` attributes on your functions.
-- **Database Connection Refused?** GhostHealth Guard requires a PostgreSQL instance. Ensure your `DATABASE_URL` is correct and migrations have been run with `sqlx migrate run`.
+.hero-sub {
+  font-size: clamp(1rem, 2.5vw, 1.4rem);
+  font-weight: 300;
+  color: rgba(200,240,255,0.75);
+  margin: 20px auto 0;
+  max-width: 700px;
+  animation: titleReveal 1s 0.3s ease-out both;
+}
 
----
+.hero-tagline {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: clamp(0.85rem, 2vw, 1.05rem);
+  color: var(--neon-green);
+  margin-top: 14px;
+  animation: titleReveal 1s 0.5s ease-out both;
+  text-shadow: 0 0 10px var(--neon-green), 0 0 20px rgba(57,255,20,0.4);
+}
 
-## 🤝 Contributing & License
-We welcome contributors! Check out [CONTRIBUTING.md](CONTRIBUTING.md) to get started.
-Licensed under **Apache-2.0**.
+/* ── SECTION TITLE ── */
+.section-title {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 700;
+  font-size: clamp(1.4rem, 3.5vw, 2rem);
+  color: var(--neon-cyan);
+  text-align: center;
+  margin-bottom: 40px;
+  letter-spacing: 0.05em;
+  position: relative;
+  animation: textGlow 3s ease-in-out infinite alternate;
+}
+.section-title::after {
+  content: '';
+  display: block;
+  width: 80px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+  margin: 10px auto 0;
+  animation: lineExpand 2s ease-in-out infinite alternate;
+}
+@keyframes lineExpand {
+  0%   { width: 60px; opacity: 0.5; }
+  100% { width: 200px; opacity: 1; }
+}
 
----
-*GhostHealth Guard: Don't just ship code; ship compliance.*
+/* ── RISK SECTION ── */
+.risk-section { padding: 60px 0; }
+
+.cost-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 24px;
+  margin-top: 10px;
+}
+
+.cost-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-glow);
+  border-radius: 16px;
+  padding: 28px 24px;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.3s, box-shadow 0.3s;
+  animation: cardFloat 6s ease-in-out infinite;
+}
+.cost-card:nth-child(2) { animation-delay: 2s; }
+.cost-card:nth-child(3) { animation-delay: 4s; }
+
+@keyframes cardFloat {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-6px); }
+}
+
+.cost-card:hover {
+  box-shadow: 0 0 30px rgba(0,255,231,0.3), 0 0 60px rgba(0,255,231,0.1);
+  transform: translateY(-10px) scale(1.02);
+}
+
+.cost-card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: conic-gradient(from 0deg, transparent 0deg, rgba(0,255,231,0.06) 60deg, transparent 120deg);
+  animation: rotateSweep 8s linear infinite;
+}
+.cost-card:nth-child(2)::before { animation-direction: reverse; background: conic-gradient(from 0deg, transparent 0deg, rgba(255,45,120,0.06) 60deg, transparent 120deg); }
+.cost-card:nth-child(3)::before { background: conic-gradient(from 0deg, transparent 0deg, rgba(57,255,20,0.06) 60deg, transparent 120deg); }
+
+@keyframes rotateSweep { to { transform: rotate(360deg); } }
+
+.card-icon { font-size: 2rem; margin-bottom: 12px; display: block; }
+.card-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(200,240,255,0.5);
+  margin-bottom: 6px;
+}
+.card-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--neon-cyan);
+  margin-bottom: 10px;
+}
+.card-body { font-size: 0.92rem; color: rgba(200,240,255,0.8); line-height: 1.6; }
+
+.danger-text {
+  color: var(--neon-pink);
+  font-weight: 700;
+  text-shadow: 0 0 10px rgba(255,45,120,0.6);
+  animation: dangerPulse 1.8s ease-in-out infinite;
+}
+@keyframes dangerPulse {
+  0%, 100% { text-shadow: 0 0 8px rgba(255,45,120,0.5); }
+  50%       { text-shadow: 0 0 20px rgba(255,45,120,1), 0 0 40px rgba(255,45,120,0.5); }
+}
+
+/* ── HOW IT WORKS ── */
+.how-section { padding: 60px 0; }
+
+.steps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.step-card {
+  background: var(--card-bg);
+  border: 1px solid rgba(0,170,255,0.2);
+  border-radius: 14px;
+  padding: 24px 18px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s;
+}
+.step-card:hover {
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 25px rgba(0,255,231,0.25);
+  transform: translateY(-5px);
+}
+
+.step-num {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: transparent;
+  -webkit-text-stroke: 1px var(--neon-cyan);
+  text-shadow: none;
+  opacity: 0.3;
+  line-height: 1;
+  margin-bottom: 10px;
+}
+.step-card:hover .step-num { opacity: 1; text-shadow: 0 0 20px var(--neon-cyan); }
+
+.step-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--neon-cyan);
+  letter-spacing: 0.05em;
+  margin-bottom: 10px;
+}
+.step-body { font-size: 0.85rem; color: rgba(200,240,255,0.72); line-height: 1.55; }
+
+/* ── WORKFLOW DIAGRAM ── */
+.workflow-section { padding: 40px 0 60px; }
+
+.workflow-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0;
+  background: rgba(0,255,231,0.03);
+  border: 1px solid rgba(0,255,231,0.15);
+  border-radius: 16px;
+  padding: 30px 20px;
+  overflow: hidden;
+  position: relative;
+}
+
+.workflow-bar::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0,255,231,0.05), transparent);
+  animation: scanBar 4s linear infinite;
+}
+@keyframes scanBar {
+  0%   { left: -100%; }
+  100% { left: 100%; }
+}
+
+.wf-node {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.82rem;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(0,255,231,0.3);
+  color: var(--neon-cyan);
+  background: rgba(0,255,231,0.05);
+  text-align: center;
+  white-space: nowrap;
+  animation: nodeGlow 3s ease-in-out infinite alternate;
+  position: relative;
+  z-index: 1;
+}
+.wf-node:nth-child(1) { animation-delay: 0s; }
+.wf-node:nth-child(3) { animation-delay: 0.5s; }
+.wf-node:nth-child(5) { animation-delay: 1s; }
+.wf-node:nth-child(7) { animation-delay: 1.5s; border-color: var(--neon-green); color: var(--neon-green); }
+
+@keyframes nodeGlow {
+  0%   { box-shadow: 0 0 6px rgba(0,255,231,0.3); }
+  100% { box-shadow: 0 0 20px rgba(0,255,231,0.7), 0 0 40px rgba(0,255,231,0.3); }
+}
+
+.wf-arrow {
+  font-size: 1.4rem;
+  color: var(--neon-cyan);
+  margin: 0 6px;
+  animation: arrowPulse 1.5s ease-in-out infinite;
+  opacity: 0.7;
+}
+@keyframes arrowPulse {
+  0%, 100% { opacity: 0.4; transform: scaleX(1); }
+  50%       { opacity: 1; transform: scaleX(1.3); }
+}
+
+.wf-branches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 20px;
+  justify-content: center;
+  width: 100%;
+}
+.wf-branch {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.78rem;
+  padding: 8px 14px;
+  border-radius: 8px;
+  text-align: center;
+}
+.branch-static { border: 1px solid rgba(0,170,255,0.5); color: var(--neon-blue); background: rgba(0,170,255,0.06); animation: branchPulse1 2.5s ease-in-out infinite; }
+.branch-ai     { border: 1px solid rgba(191,95,255,0.5); color: var(--neon-purple); background: rgba(191,95,255,0.06); animation: branchPulse1 2.5s 0.8s ease-in-out infinite; }
+.branch-zk     { border: 1px solid rgba(57,255,20,0.5); color: var(--neon-green); background: rgba(57,255,20,0.06); animation: branchPulse1 2.5s 1.6s ease-in-out infinite; }
+@keyframes branchPulse1 {
+  0%, 100% { box-shadow: 0 0 6px rgba(0,170,255,0.2); }
+  50%       { box-shadow: 0 0 18px rgba(0,170,255,0.6); }
+}
+
+/* ── FEATURES GRID ── */
+.features-section { padding: 60px 0; }
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+}
+
+.feat-card {
+  background: var(--card-bg);
+  border: 1px solid rgba(191,95,255,0.2);
+  border-radius: 16px;
+  padding: 28px 22px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s;
+}
+.feat-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--neon-purple), var(--neon-cyan), var(--neon-purple));
+  background-size: 200% 100%;
+  animation: gradientSlide 3s linear infinite;
+}
+@keyframes gradientSlide {
+  0%   { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+.feat-card:hover {
+  border-color: var(--neon-purple);
+  box-shadow: 0 0 30px rgba(191,95,255,0.3);
+  transform: translateY(-6px);
+}
+.feat-icon { font-size: 1.8rem; margin-bottom: 12px; display: block; }
+.feat-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--neon-purple);
+  letter-spacing: 0.05em;
+  margin-bottom: 10px;
+  text-shadow: 0 0 10px rgba(191,95,255,0.5);
+  animation: purpleGlow 3s ease-in-out infinite alternate;
+}
+@keyframes purpleGlow {
+  0%   { text-shadow: 0 0 8px rgba(191,95,255,0.4); }
+  100% { text-shadow: 0 0 20px rgba(191,95,255,0.9), 0 0 40px rgba(191,95,255,0.4); }
+}
+.feat-body { font-size: 0.88rem; color: rgba(200,240,255,0.75); line-height: 1.6; }
+
+/* ── HIPAA TABLE ── */
+.hipaa-section { padding: 60px 0; }
+
+.hipaa-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 10px;
+}
+.hipaa-table th {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.2em;
+  color: rgba(200,240,255,0.4);
+  text-transform: uppercase;
+  padding: 0 20px 10px;
+  text-align: left;
+}
+.hipaa-table tr.table-row td {
+  background: rgba(0,255,231,0.03);
+  border-top: 1px solid rgba(0,255,231,0.1);
+  border-bottom: 1px solid rgba(0,255,231,0.1);
+  padding: 16px 20px;
+  font-size: 0.9rem;
+  color: rgba(200,240,255,0.85);
+  transition: all 0.3s;
+}
+.hipaa-table tr.table-row td:first-child {
+  border-left: 1px solid rgba(0,255,231,0.1);
+  border-radius: 10px 0 0 10px;
+  color: var(--neon-cyan);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.82rem;
+}
+.hipaa-table tr.table-row td:last-child {
+  border-right: 1px solid rgba(0,255,231,0.1);
+  border-radius: 0 10px 10px 0;
+}
+.hipaa-table tr.table-row:hover td {
+  background: rgba(0,255,231,0.07);
+  border-color: rgba(0,255,231,0.3);
+  box-shadow: 0 0 20px rgba(0,255,231,0.1);
+}
+
+/* ── PLATFORM ── */
+.platform-section { padding: 60px 0; }
+
+.platform-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  justify-content: center;
+  margin-top: 10px;
+}
+.platform-chip {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.82rem;
+  padding: 10px 20px;
+  border-radius: 30px;
+  border: 1px solid rgba(0,255,231,0.3);
+  color: var(--neon-cyan);
+  background: rgba(0,255,231,0.04);
+  animation: chipGlow 3s ease-in-out infinite alternate;
+  transition: all 0.3s;
+}
+.platform-chip:nth-child(even) { animation-delay: 1.5s; }
+.platform-chip:hover {
+  background: rgba(0,255,231,0.12);
+  box-shadow: 0 0 20px rgba(0,255,231,0.5);
+  transform: scale(1.06);
+}
+@keyframes chipGlow {
+  0%   { box-shadow: 0 0 6px rgba(0,255,231,0.2); }
+  100% { box-shadow: 0 0 16px rgba(0,255,231,0.6); }
+}
+
+/* ── INSTALL ── */
+.install-section { padding: 60px 0; }
+
+.code-block {
+  background: rgba(0,0,0,0.5);
+  border: 1px solid rgba(0,255,231,0.2);
+  border-radius: 12px;
+  padding: 20px 24px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.85rem;
+  color: var(--neon-green);
+  margin: 16px 0;
+  overflow-x: auto;
+  position: relative;
+  line-height: 1.7;
+  animation: codeGlow 4s ease-in-out infinite alternate;
+}
+.code-block::before {
+  content: '$ ';
+  color: var(--neon-cyan);
+  opacity: 0.6;
+}
+@keyframes codeGlow {
+  0%   { box-shadow: 0 0 8px rgba(0,255,231,0.1); }
+  100% { box-shadow: 0 0 20px rgba(0,255,231,0.3), inset 0 0 20px rgba(0,255,231,0.03); }
+}
+
+.json-block {
+  background: rgba(0,0,0,0.5);
+  border: 1px solid rgba(57,255,20,0.25);
+  border-radius: 12px;
+  padding: 20px 24px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.82rem;
+  color: rgba(200,240,255,0.85);
+  margin: 16px 0;
+  overflow-x: auto;
+  line-height: 1.8;
+  animation: jsonGlow 3s ease-in-out infinite alternate;
+}
+@keyframes jsonGlow {
+  0%   { box-shadow: 0 0 8px rgba(57,255,20,0.1); border-color: rgba(57,255,20,0.2); }
+  100% { box-shadow: 0 0 25px rgba(57,255,20,0.3); border-color: rgba(57,255,20,0.5); }
+}
+.json-key   { color: var(--neon-cyan); }
+.json-str   { color: var(--neon-green); }
+.json-num   { color: var(--neon-pink); animation: dangerPulse 2s ease-in-out infinite; }
+.json-label { color: var(--neon-purple); }
+
+.yaml-block {
+  background: rgba(0,0,0,0.5);
+  border: 1px solid rgba(0,170,255,0.25);
+  border-radius: 12px;
+  padding: 20px 24px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.82rem;
+  color: rgba(200,240,255,0.85);
+  margin: 16px 0;
+  overflow-x: auto;
+  line-height: 1.8;
+  animation: yamlGlow 3s ease-in-out infinite alternate;
+}
+@keyframes yamlGlow {
+  0%   { box-shadow: 0 0 8px rgba(0,170,255,0.1); }
+  100% { box-shadow: 0 0 25px rgba(0,170,255,0.3); }
+}
+.yaml-key { color: var(--neon-blue); }
+.yaml-val { color: var(--neon-green); }
+.yaml-cmt { color: rgba(200,240,255,0.35); font-style: italic; }
+
+/* ── ROI TABLE ── */
+.roi-section { padding: 60px 0; }
+
+.roi-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 10px;
+}
+.roi-table th {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.2em;
+  color: rgba(200,240,255,0.4);
+  text-transform: uppercase;
+  padding: 0 20px 10px;
+  text-align: left;
+}
+.roi-table tr.roi-row td {
+  background: rgba(0,0,0,0.3);
+  border-top: 1px solid rgba(200,240,255,0.06);
+  border-bottom: 1px solid rgba(200,240,255,0.06);
+  padding: 14px 20px;
+  font-size: 0.9rem;
+  color: rgba(200,240,255,0.8);
+  transition: all 0.3s;
+}
+.roi-table tr.roi-row td:first-child {
+  border-left: 1px solid rgba(200,240,255,0.06);
+  border-radius: 10px 0 0 10px;
+  font-weight: 600;
+  color: #c8f0ff;
+}
+.roi-table tr.roi-row td:last-child {
+  border-right: 1px solid rgba(200,240,255,0.06);
+  border-radius: 0 10px 10px 0;
+}
+.bad-cost  { color: var(--neon-pink); font-weight: 700; animation: dangerPulse 2s ease-in-out infinite; }
+.good-cost { color: var(--neon-green); font-weight: 700; text-shadow: 0 0 10px rgba(57,255,20,0.5); animation: greenGlow 2s ease-in-out infinite alternate; }
+@keyframes greenGlow {
+  0%   { text-shadow: 0 0 6px rgba(57,255,20,0.4); }
+  100% { text-shadow: 0 0 20px rgba(57,255,20,0.9), 0 0 40px rgba(57,255,20,0.4); }
+}
+.roi-table tr.roi-row:hover td {
+  background: rgba(0,255,231,0.05);
+}
+
+/* ── WHO IT'S FOR ── */
+.who-section { padding: 60px 0; }
+
+.who-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.who-card {
+  background: var(--card-bg);
+  border: 1px solid rgba(57,255,20,0.2);
+  border-radius: 16px;
+  padding: 28px 22px;
+  text-align: center;
+  transition: all 0.3s;
+  animation: whoFloat 7s ease-in-out infinite;
+}
+.who-card:nth-child(2) { animation-delay: 2.3s; border-color: rgba(0,170,255,0.2); }
+.who-card:nth-child(3) { animation-delay: 4.6s; border-color: rgba(191,95,255,0.2); }
+@keyframes whoFloat {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-8px); }
+}
+.who-card:hover {
+  box-shadow: 0 0 25px rgba(57,255,20,0.25);
+  transform: translateY(-10px);
+}
+.who-emoji { font-size: 3rem; margin-bottom: 14px; display: block; }
+.who-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--neon-green);
+  margin-bottom: 10px;
+  animation: greenGlow 3s ease-in-out infinite alternate;
+}
+.who-card:nth-child(2) .who-title { color: var(--neon-blue); animation: blueGlow 3s ease-in-out infinite alternate; }
+.who-card:nth-child(3) .who-title { color: var(--neon-purple); animation: purpleGlow 3s ease-in-out infinite alternate; }
+@keyframes blueGlow {
+  0%   { text-shadow: 0 0 8px rgba(0,170,255,0.4); }
+  100% { text-shadow: 0 0 20px rgba(0,170,255,0.9), 0 0 40px rgba(0,170,255,0.4); }
+}
+.who-body { font-size: 0.88rem; color: rgba(200,240,255,0.72); line-height: 1.6; }
+
+/* ── FAQ ── */
+.faq-section { padding: 60px 0; }
+
+.faq-item {
+  background: var(--card-bg);
+  border: 1px solid rgba(0,255,231,0.1);
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin-bottom: 14px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s;
+}
+.faq-item:hover {
+  border-color: rgba(0,255,231,0.35);
+  box-shadow: 0 0 20px rgba(0,255,231,0.1);
+}
+.faq-item::before {
+  content: '?';
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: 'Orbitron', sans-serif;
+  font-size: 3rem;
+  font-weight: 900;
+  color: rgba(0,255,231,0.06);
+  pointer-events: none;
+}
+.faq-q {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--neon-cyan);
+  margin-bottom: 8px;
+  letter-spacing: 0.03em;
+}
+.faq-a { font-size: 0.9rem; color: rgba(200,240,255,0.75); line-height: 1.6; }
+.faq-a code {
+  font-family: 'Share Tech Mono', monospace;
+  color: var(--neon-green);
+  background: rgba(57,255,20,0.07);
+  padding: 2px 7px;
+  border-radius: 5px;
+  font-size: 0.82rem;
+}
+
+/* ── CTA ── */
+.cta-section {
+  padding: 80px 0;
+  text-align: center;
+  position: relative;
+}
+.cta-section::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 70% 60% at 50% 50%, rgba(0,255,231,0.07) 0%, transparent 70%);
+  pointer-events: none;
+  animation: ctaPulse 4s ease-in-out infinite alternate;
+}
+@keyframes ctaPulse {
+  0%   { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+.cta-title {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 900;
+  font-size: clamp(1.8rem, 5vw, 3rem);
+  color: #fff;
+  margin-bottom: 16px;
+  text-shadow: 0 0 30px rgba(0,255,231,0.4);
+  animation: textGlow 3s ease-in-out infinite alternate;
+}
+.cta-sub { font-size: 1.05rem; color: rgba(200,240,255,0.65); margin-bottom: 36px; }
+
+.cta-btns { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+
+.btn-primary {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 16px 36px;
+  border-radius: 8px;
+  border: none;
+  background: var(--neon-cyan);
+  color: #020812;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  text-decoration: none;
+  display: inline-block;
+  animation: btnPrimGlow 2.5s ease-in-out infinite alternate;
+  transition: transform 0.2s;
+}
+.btn-primary:hover { transform: scale(1.07); }
+@keyframes btnPrimGlow {
+  0%   { box-shadow: 0 0 20px rgba(0,255,231,0.5), 0 0 40px rgba(0,255,231,0.2); }
+  100% { box-shadow: 0 0 40px rgba(0,255,231,0.9), 0 0 80px rgba(0,255,231,0.5); }
+}
+.btn-primary::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -70%;
+  width: 60%;
+  height: 200%;
+  background: rgba(255,255,255,0.25);
+  transform: skewX(-20deg);
+  animation: btnShimmer 3s infinite;
+}
+@keyframes btnShimmer {
+  0%   { left: -70%; }
+  60%  { left: 130%; }
+  100% { left: 130%; }
+}
+
+.btn-secondary {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 16px 36px;
+  border-radius: 8px;
+  border: 1px solid var(--neon-cyan);
+  background: transparent;
+  color: var(--neon-cyan);
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+  animation: btnSecGlow 2.5s 1.2s ease-in-out infinite alternate;
+  transition: all 0.2s;
+}
+.btn-secondary:hover { background: rgba(0,255,231,0.08); transform: scale(1.07); }
+@keyframes btnSecGlow {
+  0%   { box-shadow: 0 0 10px rgba(0,255,231,0.2); }
+  100% { box-shadow: 0 0 25px rgba(0,255,231,0.6); }
+}
+
+/* ── FOOTER ── */
+footer {
+  text-align: center;
+  padding: 30px 24px 50px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.78rem;
+  color: rgba(200,240,255,0.3);
+  border-top: 1px solid rgba(0,255,231,0.08);
+  letter-spacing: 0.1em;
+}
+footer span { color: var(--neon-cyan); animation: textGlow 3s ease-in-out infinite alternate; }
+
+/* ── SECTION DIVIDER ── */
+.divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0,255,231,0.2), transparent);
+  margin: 0 40px;
+  animation: dividerGlow 4s ease-in-out infinite alternate;
+}
+@keyframes dividerGlow {
+  0%   { opacity: 0.4; }
+  100% { opacity: 1; box-shadow: 0 0 10px rgba(0,255,231,0.4); }
+}
+
+/* ── TICKER ── */
+.ticker-wrap {
+  overflow: hidden;
+  background: rgba(0,255,231,0.04);
+  border-top: 1px solid rgba(0,255,231,0.12);
+  border-bottom: 1px solid rgba(0,255,231,0.12);
+  padding: 10px 0;
+  margin-bottom: 60px;
+}
+.ticker {
+  display: flex;
+  width: max-content;
+  animation: ticker 25s linear infinite;
+  gap: 80px;
+}
+@keyframes ticker {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.ticker-item {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.78rem;
+  letter-spacing: 0.15em;
+  color: rgba(0,255,231,0.6);
+  white-space: nowrap;
+}
+.ticker-item strong { color: var(--neon-cyan); }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 600px) {
+  .workflow-bar { flex-direction: column; }
+  .wf-arrow { transform: rotate(90deg); }
+}
+</style>
+</head>
+<body>
+
+<div id="particles"></div>
+
+<!-- TICKER -->
+<div class="ticker-wrap">
+  <div class="ticker" id="ticker">
+    <span class="ticker-item">🛡️ <strong>HIPAA</strong> COMPLIANCE AUTOMATION &nbsp;•&nbsp;</span>
+    <span class="ticker-item">⚡ <strong>PHI LEAK</strong> DETECTION IN EVERY PR &nbsp;•&nbsp;</span>
+    <span class="ticker-item">🔒 <strong>ZK-PROOF</strong> AUDIT CHAIN &nbsp;•&nbsp;</span>
+    <span class="ticker-item">🦀 <strong>RUST</strong> HEALTH-TECH SECURITY &nbsp;•&nbsp;</span>
+    <span class="ticker-item">💸 STOP <strong>$50K FINES</strong> BEFORE THEY HAPPEN &nbsp;•&nbsp;</span>
+    <span class="ticker-item">🧠 <strong>AI-POWERED</strong> CODE REVIEW &nbsp;•&nbsp;</span>
+    <span class="ticker-item">🛡️ <strong>HIPAA</strong> COMPLIANCE AUTOMATION &nbsp;•&nbsp;</span>
+    <span class="ticker-item">⚡ <strong>PHI LEAK</strong> DETECTION IN EVERY PR &nbsp;•&nbsp;</span>
+    <span class="ticker-item">🔒 <strong>ZK-PROOF</strong> AUDIT CHAIN &nbsp;•&nbsp;</span>
+    <span class="ticker-item">🦀 <strong>RUST</strong> HEALTH-TECH SECURITY &nbsp;•&nbsp;</span>
+    <span class="ticker-item">💸 STOP <strong>$50K FINES</strong> BEFORE THEY HAPPEN &nbsp;•&nbsp;</span>
+    <span class="ticker-item">🧠 <strong>AI-POWERED</strong> CODE REVIEW &nbsp;•&nbsp;</span>
+  </div>
+</div>
+
+<!-- HERO -->
+<header>
+  <div class="badge">🛡️ &nbsp; ZERO-STRESS HIPAA COMPLIANCE &nbsp; 🛡️</div>
+  <h1 class="hero-title">
+    <span class="glow-text">GhostHealth</span><br>Guard
+  </h1>
+  <p class="hero-sub">Catch HIPAA compliance issues <em>before</em> they cost you <strong style="color:var(--neon-pink);text-shadow:0 0 12px rgba(255,45,120,0.7)">$50,000</strong> — inside your GitHub PRs.</p>
+  <p class="hero-tagline">// The invisible shield for your Rust health-tech stack.</p>
+</header>
+
+<div class="wrapper">
+
+  <!-- WHY IT MATTERS -->
+  <section class="risk-section">
+    <h2 class="section-title">📈 Why This Matters</h2>
+    <div class="cost-grid">
+      <div class="cost-card">
+        <span class="card-icon">⚠️</span>
+        <div class="card-label">The Risk</div>
+        <div class="card-title">Linters Are Blind</div>
+        <p class="card-body">Standard linters don't understand the difference between a <code style="color:var(--neon-green);font-family:Share Tech Mono,monospace">"Username"</code> (public) and <code style="color:var(--neon-pink);font-family:Share Tech Mono,monospace">"PatientID"</code> (PHI). Context is everything.</p>
+      </div>
+      <div class="cost-card">
+        <span class="card-icon">💸</span>
+        <div class="card-label">The Gap</div>
+        <div class="card-title">One <code style="color:var(--neon-pink);font-family:Share Tech Mono,monospace">println!</code> = Game Over</div>
+        <p class="card-body">A single accidental log entry of a <code style="color:var(--neon-pink);font-family:Share Tech Mono,monospace">SocialSecurityNumber</code> can trigger <span class="danger-text">HIPAA fines starting at $50,000</span> per violation.</p>
+      </div>
+      <div class="cost-card">
+        <span class="card-icon">🛡️</span>
+        <div class="card-label">The Solution</div>
+        <div class="card-title">Context-Aware AI Auditor</div>
+        <p class="card-body">A specialized, context-aware auditor that understands both Rust's memory safety model and HIPAA/GDPR privacy requirements — built for your stack.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- HOW IT WORKS -->
+  <section class="how-section">
+    <h2 class="section-title">⚙️ Multi-Layered Security</h2>
+    <div class="steps-grid">
+      <div class="step-card">
+        <div class="step-num">01</div>
+        <div class="step-title">Static Privacy Scanning</div>
+        <p class="step-body">Custom <strong>Semgrep rules</strong> catch hardcoded sensitive strings and unmasked logging of PHI before they ever reach review.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">02</div>
+        <div class="step-title">AI-Powered Code Review</div>
+        <p class="step-body">Specialized LLM (<strong>Gemini 1.5 Flash / GPT-4o</strong>) hunts for "Privacy Smells" — unencrypted transit, improper <code style="color:var(--neon-green);font-family:Share Tech Mono,monospace">Debug</code> trait on sensitive data.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">03</div>
+        <div class="step-title">Architectural PHI Tracking</div>
+        <p class="step-body"><strong>Vector Database (RAG)</strong> understands your codebase's data models. Knows if a struct is <code style="color:var(--neon-pink);font-family:Share Tech Mono,monospace">#[Sensitive]</code> and flags unsafe handling across the entire repo.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">04</div>
+        <div class="step-title">Confidential Computing</div>
+        <p class="step-body">Optional <strong>Intel SGX enclave</strong> support for processing audit logs in a secure, hardware-isolated environment. Even Root can't touch it.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">05</div>
+        <div class="step-title">Immutable Audit Chain</div>
+        <p class="step-body">Every scan result notarized on a <strong>blockchain</strong> and linked via <strong>ZK-proofs</strong> — your compliance history is tamper-proof for auditors, forever.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- WORKFLOW -->
+  <section class="workflow-section">
+    <h2 class="section-title">🔄 The Workflow</h2>
+    <div class="workflow-bar">
+      <div class="wf-node">👨‍💻 Developer</div>
+      <span class="wf-arrow">──▶</span>
+      <div class="wf-node">🔀 GitHub PR</div>
+      <span class="wf-arrow">──▶</span>
+      <div class="wf-node">👁️ GhostHealth Scan</div>
+      <span class="wf-arrow">──▶</span>
+      <div class="wf-node">🚩 Flags Issues</div>
+      <span class="wf-arrow">──▶</span>
+      <div class="wf-node">✅ Secure Merge</div>
+      <div class="wf-branches">
+        <div class="wf-branch branch-static">📊 Static Scan<br><small>Semgrep Rules</small></div>
+        <div class="wf-branch branch-ai">🧠 AI Review<br><small>Gemini / GPT-4o</small></div>
+        <div class="wf-branch branch-zk">🔗 Audit Chain<br><small>ZK-Proof Hash</small></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- CORE SECURITY -->
+  <section class="features-section">
+    <h2 class="section-title">🛡️ Core Security Features</h2>
+    <div class="features-grid">
+      <div class="feat-card">
+        <span class="feat-icon">🔮</span>
+        <div class="feat-title">Zero-Knowledge (ZK) Proofs</div>
+        <p class="feat-body">Verify compliance status without revealing sensitive code logic to third-party auditors. Prove you're compliant — reveal nothing.</p>
+      </div>
+      <div class="feat-card">
+        <span class="feat-icon">🏛️</span>
+        <div class="feat-title">FIPS 140-2/3 Readiness</div>
+        <p class="feat-body">Cryptographic modules designed to meet federal security standards. Enterprise-grade from day one.</p>
+      </div>
+      <div class="feat-card">
+        <span class="feat-icon">⚙️</span>
+        <div class="feat-title">Hardware Enclaves (TEE)</div>
+        <p class="feat-body">Intel SGX support ensures audit logs are processed in a "Black Box" environment. Even the Root user cannot access what's inside.</p>
+      </div>
+      <div class="feat-card">
+        <span class="feat-icon">⛓️</span>
+        <div class="feat-title">Immutable Blockchain Logs</div>
+        <p class="feat-body">Every scan is chained cryptographically — no retroactive tampering. Your audit trail is unbreakable and permanent.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- HIPAA TABLE -->
+  <section class="hipaa-section">
+    <h2 class="section-title">📋 HIPAA Production Readiness</h2>
+    <table class="hipaa-table">
+      <thead>
+        <tr>
+          <th>HIPAA Safeguard</th>
+          <th>GhostHealth Guard Feature</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="table-row">
+          <td>Access Control §164.312(a)(1)</td>
+          <td>Automated SGX Enclave isolation for sensitive processing</td>
+        </tr>
+        <tr class="table-row">
+          <td>Audit Controls §164.312(b)</td>
+          <td>Immutable blockchain-notarized audit logs</td>
+        </tr>
+        <tr class="table-row">
+          <td>Integrity §164.312(c)(1)</td>
+          <td>ZK-Proofs ensuring scan results haven't been tampered with</td>
+        </tr>
+        <tr class="table-row">
+          <td>Transmission Security §164.312(e)(1)</td>
+          <td>Static analysis for TLS/SSL implementation errors</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- PLATFORM -->
+  <section class="platform-section">
+    <h2 class="section-title">📦 Multi-Platform Support</h2>
+    <div class="platform-chips">
+      <div class="platform-chip">🐧 Linux x86_64</div>
+      <div class="platform-chip">🐧 Linux AArch64</div>
+      <div class="platform-chip">🍎 macOS Intel</div>
+      <div class="platform-chip">🍎 Apple Silicon M1/M2/M3</div>
+      <div class="platform-chip">🪟 Windows x86_64</div>
+      <div class="platform-chip">📦 Ubuntu / Debian / CentOS</div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- INSTALL -->
+  <section class="install-section">
+    <h2 class="section-title">🛠️ Installation</h2>
+
+    <h3 style="font-family:Orbitron,sans-serif;font-size:0.9rem;color:var(--neon-cyan);margin-bottom:10px;letter-spacing:0.05em">⚡ Quick Start — No Rust Required</h3>
+    <p style="color:rgba(200,240,255,0.7);margin-bottom:12px;font-size:0.9rem">Download the binary for your OS from the Latest Release, extract, and move to path:</p>
+    <div class="code-block">ghosthealth-guard --version</div>
+
+    <h3 style="font-family:Orbitron,sans-serif;font-size:0.9rem;color:var(--neon-cyan);margin:28px 0 10px;letter-spacing:0.05em">🦀 Build from Source</h3>
+    <div class="code-block">git clone https://github.com/basharmaximous-wq/GhostHealth-Guard.git<br>&nbsp;&nbsp;cd GhostHealth-Guard<br>&nbsp;&nbsp;cargo install --path .</div>
+
+    <h3 style="font-family:Orbitron,sans-serif;font-size:0.9rem;color:var(--neon-cyan);margin:28px 0 10px;letter-spacing:0.05em">🔧 Environment Variables (.env)</h3>
+    <div class="yaml-block">
+      <span class="yaml-key">DATABASE_URL</span>=<span class="yaml-val">postgres://user:pass@localhost:5432/ghostdb</span><br>
+      <span class="yaml-key">GEMINI_API_KEY</span>=<span class="yaml-val">your_gemini_api_key_here</span><br>
+      <span class="yaml-key">GITHUB_APP_ID</span>=<span class="yaml-val">your_app_id</span><br>
+      <span class="yaml-key">PRIVATE_KEY_PATH</span>=<span class="yaml-val">path/to/key.pem</span>
+    </div>
+
+    <h3 style="font-family:Orbitron,sans-serif;font-size:0.9rem;color:var(--neon-cyan);margin:28px 0 10px;letter-spacing:0.05em">🗄️ Initialize Database</h3>
+    <div class="code-block">sqlx migrate run</div>
+
+    <h3 style="font-family:Orbitron,sans-serif;font-size:0.9rem;color:var(--neon-cyan);margin:28px 0 10px;letter-spacing:0.05em">💻 Run a Local Scan</h3>
+    <div class="code-block">ghosthealth-guard scan ./src --api-key $GEMINI_API_KEY</div>
+
+    <h3 style="font-family:Orbitron,sans-serif;font-size:0.9rem;color:var(--neon-cyan);margin:28px 0 10px;letter-spacing:0.05em">📊 Output Example</h3>
+    <div class="json-block">
+      {<br>
+      &nbsp;&nbsp;<span class="json-key">"status"</span>: <span class="json-str">"VIOLATION"</span>,<br>
+      &nbsp;&nbsp;<span class="json-key">"risk_score"</span>: <span class="json-num">85</span>,<br>
+      &nbsp;&nbsp;<span class="json-key">"issues"</span>: [<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;{<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="json-key">"category"</span>: <span class="json-label">"PHI_LOGGING"</span>,<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="json-key">"severity"</span>: <span class="json-str">"HIGH"</span>,<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="json-key">"message"</span>: <span class="json-str">"PHI field 'ssn' logged at line 42 — HIPAA violation"</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;}<br>
+      &nbsp;&nbsp;]<br>
+      }
+    </div>
+
+    <h3 style="font-family:Orbitron,sans-serif;font-size:0.9rem;color:var(--neon-cyan);margin:28px 0 10px;letter-spacing:0.05em">🔗 GitHub Actions Integration (.github/workflows/ghosthealth_check.yml)</h3>
+    <div class="yaml-block">
+      <span class="yaml-cmt">name: Compliance Audit</span><br>
+      <span class="yaml-key">on</span>: [<span class="yaml-val">pull_request</span>]<br><br>
+      <span class="yaml-key">jobs</span>:<br>
+      &nbsp;&nbsp;<span class="yaml-key">audit</span>:<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="yaml-key">runs-on</span>: <span class="yaml-val">ubuntu-latest</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="yaml-key">steps</span>:<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- <span class="yaml-key">uses</span>: <span class="yaml-val">actions/checkout@v4</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- <span class="yaml-key">name</span>: <span class="yaml-val">Run GhostHealth Guard</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="yaml-key">run</span>: <span class="yaml-val">ghosthealth-guard scan-pr --pr-number ${{ github.event.number }}</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="yaml-key">env</span>:<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="yaml-key">GEMINI_API_KEY</span>: <span class="yaml-val">${{ secrets.GEMINI_API_KEY }}</span>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- ROI TABLE -->
+  <section class="roi-section">
+    <h2 class="section-title">💸 The ROI of Privacy</h2>
+    <table class="roi-table">
+      <thead>
+        <tr>
+          <th>Scenario</th>
+          <th>Without Guard</th>
+          <th>With GhostHealth Guard</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="roi-row">
+          <td>PHI Leak in Production</td>
+          <td class="bad-cost">$50,000+ Fine</td>
+          <td class="good-cost">$0 — Caught in PR</td>
+        </tr>
+        <tr class="roi-row">
+          <td>Manual Security Audit</td>
+          <td class="bad-cost">$10,000 / week</td>
+          <td class="good-cost">Included (Auto-reports)</td>
+        </tr>
+        <tr class="roi-row">
+          <td>Developer Time</td>
+          <td class="bad-cost">~5h / week fixing leaks late</td>
+          <td class="good-cost">Minutes — fixing at source</td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="text-align:center;margin-top:24px;font-size:0.9rem;color:rgba(200,240,255,0.6)">
+      <strong style="color:var(--neon-cyan);text-shadow:0 0 10px rgba(0,255,231,0.5)">ROI:</strong> A single caught violation pays for <em>years</em> of development and AI API costs.
+    </p>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- WHO IT'S FOR -->
+  <section class="who-section">
+    <h2 class="section-title">🧠 Who It's For</h2>
+    <div class="who-grid">
+      <div class="who-card">
+        <span class="who-emoji">🦀</span>
+        <div class="who-title">Rust Health-Tech Devs</div>
+        <p class="who-body">Building EHR systems, medical devices, or PHI-aware apps. Guard your patients' data at the source.</p>
+      </div>
+      <div class="who-card">
+        <span class="who-emoji">🚀</span>
+        <div class="who-title">Startups</div>
+        <p class="who-body">Small teams that need enterprise-grade compliance without a dedicated security staff. Ship fast — stay safe.</p>
+      </div>
+      <div class="who-card">
+        <span class="who-emoji">🌍</span>
+        <div class="who-title">Open-Source Projects</div>
+        <p class="who-body">Protecting the integrity of decentralized or public health data. Compliance for the commons.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- FAQ -->
+  <section class="faq-section">
+    <h2 class="section-title">❓ Troubleshooting & FAQ</h2>
+
+    <div class="faq-item">
+      <div class="faq-q">Missing API Key?</div>
+      <p class="faq-a">Ensure <code>GEMINI_API_KEY</code> or <code>OPENAI_API_KEY</code> is exported in your environment before running any scan commands.</p>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">Timeout on Large Repos?</div>
+      <p class="faq-a">Use the <code>--timeout</code> flag to increase processing time for deep architectural analysis across large codebases.</p>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">Getting a False Positive?</div>
+      <p class="faq-a">Suppress specific warnings using the <code>#[allow(compliance_risk)]</code> or <code>#[ignore_compliance]</code> attributes on your functions.</p>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">Database Connection Refused?</div>
+      <p class="faq-a">GhostHealth Guard requires a live <strong>PostgreSQL</strong> instance. Ensure your <code>DATABASE_URL</code> is correct and migrations have been run with <code>sqlx migrate run</code>.</p>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- CTA -->
+  <section class="cta-section">
+    <h2 class="cta-title">Don't just ship code.<br><span class="glow-text">Ship compliance.</span></h2>
+    <p class="cta-sub">Open source · Apache-2.0 · Contributions welcome</p>
+    <div class="cta-btns">
+      <a href="https://github.com/basharmaximous-wq/GhostHealth-Guard/releases/latest" class="btn-primary">⬇️ Download Latest</a>
+      <a href="https://github.com/basharmaximous-wq/GhostHealth-Guard" class="btn-secondary">⭐ View on GitHub</a>
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  <span>GhostHealth Guard</span> &nbsp;•&nbsp; Apache-2.0 License &nbsp;•&nbsp; Zero-stress HIPAA for Rust health-tech teams
+</footer>
+
+<script>
+// Generate floating particles
+const container = document.getElementById('particles');
+const colors = ['#00ffe7','#39ff14','#ff2d78','#0af','#bf5fff'];
+
+for (let i = 0; i < 55; i++) {
+  const p = document.createElement('div');
+  p.className = 'particle';
+  const size = Math.random() * 4 + 1;
+  const color = colors[Math.floor(Math.random() * colors.length)];
+  p.style.cssText = `
+    width: ${size}px;
+    height: ${size}px;
+    left: ${Math.random() * 100}%;
+    background: ${color};
+    box-shadow: 0 0 ${size * 3}px ${color};
+    animation-duration: ${Math.random() * 15 + 8}s;
+    animation-delay: ${Math.random() * 12}s;
+  `;
+  container.appendChild(p);
+}
+
+// Duplicate ticker for seamless loop
+const ticker = document.getElementById('ticker');
+ticker.innerHTML += ticker.innerHTML;
+</script>
+</body>
+</html>
