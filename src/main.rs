@@ -1,6 +1,6 @@
 use dotenvy::dotenv;
 use ghosthealth_guard::*;
-use sqlx::PgPool;
+use sqlx::SqlitePool;
 
 use anyhow::Context;
 use axum::{
@@ -16,7 +16,6 @@ use jsonwebtoken::EncodingKey;
 use octocrab::Octocrab;
 use secrecy::{ExposeSecret, SecretString};
 use sha2::Sha256;
-use sqlx::postgres::{PgPoolOptions, PgRow};
 use sqlx::Row;
 use std::sync::Arc;
 use subtle::ConstantTimeEq;
@@ -29,7 +28,7 @@ struct AppState {
     webhook_secret: SecretString,
     app_id: u64,
     private_key: Vec<u8>,
-    db: PgPool,
+    db: SqlitePool,
 }
 
 #[tokio::main]
@@ -53,18 +52,18 @@ async fn main() -> anyhow::Result<()> {
 
     info!("Starting GhostHealth-Guard: Local Testing Mode Enabled");
 
-    // 4. DATABASE: Pointing specifically to Port 5433 for your local setup
+    // 4. DATABASE: Using SQLite for local testing
     let database_url = std::env::var("DATABASE_URL")
-        .unwrap_or_else(|_| "postgres://ghost:BBMK21@127.0.0.1:5433/ghostdb".to_string());
+        .unwrap_or_else(|_| "sqlite:ghosthealth.db".to_string());
 
-    let db = PgPoolOptions::new()
+    let db = sqlx::sqlite::SqlitePoolOptions::new()
         .max_connections(5)
         .acquire_timeout(std::time::Duration::from_secs(30))
         .connect(&database_url)
         .await
-        .context("Failed to connect to database on Port 5433")?;
+        .context("Failed to connect to SQLite database")?;
 
-    info!("Database connection established on Port 5433");
+    info!("Database connection established to SQLite");
 
     // 5. GitHub Configuration (with local fallbacks to prevent crashes)
     let webhook_secret = SecretString::new(
@@ -213,7 +212,7 @@ async fn process_pull_request(
         .context("Gemini AI Analysis failed")?;
 
     // 2. Blockchain Audit Chain Hashing
-    let last_record: Option<PgRow> =
+    let last_record: Option<sqlx::sqlite::SqliteRow> =
         sqlx::query("SELECT current_hash FROM audit_logs ORDER BY created_at DESC LIMIT 1")
             .fetch_optional(&state.db)
             .await?;
@@ -231,7 +230,7 @@ async fn process_pull_request(
     let new_hash = entry.entry_hash.clone();
 
     // 3. Database Persistence
-    let tenant_row: (uuid::Uuid,) = sqlx::query_as("SELECT id FROM tenants LIMIT 1")
+    let tenant_row: (String,) = sqlx::query_as("SELECT id FROM tenants LIMIT 1")
         .fetch_one(&state.db)
         .await
         .context("No tenant found. Run your SQL setup scripts first.")?;
@@ -240,7 +239,7 @@ async fn process_pull_request(
         r#"
         INSERT INTO audit_logs
         (tenant_id, repo_name, pr_number, status, risk_score, report, previous_hash, current_hash)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         "#,
     )
     .bind(tenant_row.0)
