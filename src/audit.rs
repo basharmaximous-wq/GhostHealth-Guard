@@ -28,7 +28,20 @@ impl AuditEntry {
 static CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
 
 pub async fn llm_review(diff: &str) -> anyhow::Result<AuditResult> {
-    let key = std::env::var("GEMINI_API_KEY").context("GEMINI_API_KEY not set")?;
+    let key = std::env::var("GEMINI_API_KEY").unwrap_or_else(|_| "mock".to_string());
+
+    if key == "mock" {
+        tracing::info!("Using MOCK AI analysis for local testing");
+        return Ok(AuditResult {
+            status: "VIOLATION".into(),
+            risk_score: 85,
+            issues: vec![Issue {
+                category: "PHI_LOGGING".into(),
+                severity: "HIGH".into(),
+                message: "Mock violation: Patient Log detected in diff".into(),
+            }],
+        });
+    }
 
     let client = CLIENT.get_or_init(reqwest::Client::new);
 
