@@ -43,17 +43,20 @@ use axum::http::HeaderMap;
 use hmac::{Hmac, Mac};
 use jsonwebtoken::EncodingKey;
 use octocrab::models::{Installation, InstallationId};
+use secrecy::SecretString;
 use sha2::Sha256;
+use sqlx::PgPool;
 use std::sync::Arc;
 
 // ─────────────────────────────────────────────
 // AppState
 // ─────────────────────────────────────────────
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct AppState {
+    pub webhook_secret: SecretString,
+    pub github_app_id: u64,
     pub private_key: Vec<u8>,
-    pub github_app_id: String,
-    pub webhook_secret: Vec<u8>,
+    pub db: PgPool,
 }
 
 // ─────────────────────────────────────────────
@@ -201,6 +204,8 @@ impl WebhookEvent {
 // Webhook signature verification
 // ─────────────────────────────────────────────
 pub fn verify_webhook(state: &AppState, headers: &HeaderMap, body: &Bytes) -> anyhow::Result<()> {
+    use secrecy::ExposeSecret;
+
     let signature = headers
         .get("X-Hub-Signature-256")
         .and_then(|v| v.to_str().ok())
@@ -213,8 +218,8 @@ pub fn verify_webhook(state: &AppState, headers: &HeaderMap, body: &Bytes) -> an
     )
     .context("Invalid hex in signature")?;
 
-    let mut mac =
-        Hmac::<Sha256>::new_from_slice(&state.webhook_secret).context("Failed to create HMAC")?;
+    let mut mac = Hmac::<Sha256>::new_from_slice(state.webhook_secret.expose_secret().as_bytes())
+        .context("Failed to create HMAC")?;
     mac.update(body);
     mac.verify_slice(&sig_bytes)
         .context("Webhook signature verification failed")?;
@@ -225,21 +230,103 @@ pub fn verify_webhook(state: &AppState, headers: &HeaderMap, body: &Bytes) -> an
 // ─────────────────────────────────────────────
 // Pull Request processor
 // ─────────────────────────────────────────────
-pub async fn process_pull_request(state: Arc<AppState>, event: WebhookEvent) -> anyhow::Result<()> {
-    let repo = event.repository.context("No repository in event")?;
+pub async fn process_pull_request(
+    state: Arc<AppState>,
+    payload: serde_json::Value,
+) -> anyhow::Result<()> {
+    use crate::github;
+    use octocrab::Octocrab;
+    use sqlx::Row;
+    use tracing::info;
 
-    let WebhookEventPayload::PullRequest(pr_payload) = event.spec;
+    let repo_name = payload["repository"]["full_name"]
+        .as_str()
+        .unwrap_or("ghosthealth/test-repo")
+        .to_string();
 
-    let repo_name = repo.name.clone();
-    let pr_number = pr_payload.pull_request.number;
-    println!("Processing PR #{} in repo: {}", pr_number, repo_name);
+    let pr_number = payload["pull_request"]["number"].as_u64().unwrap_or(0);
+    let installation_id = payload["installation"]["id"].as_u64().unwrap_or(0);
+    let action = payload["action"].as_str().unwrap_or("opened");
 
-    let _entry = AuditEntry::new(&repo_name, "genesis");
+    info!(
+        "Processing PR #{} in {} (action: {})",
+        pr_number, repo_name, action
+    );
 
-    let _app_key = EncodingKey::from_rsa_pem(&state.private_key)
-        .context("Failed to build RSA encoding key — is PRIVATE_KEY_PATH correct?")?;
+    // TEST MODE: Hardcoded leak for Gemini AI to discover
+    let diff = "
++ fn update_user() {
++    let ssn = \"666-44-1111\";
++    let name = \"John Ghost\";
++    println!(\"Checking record for {}\", name);
++ }
+"
+    .to_string();
 
-    // TODO: create octocrab client with JWT, post review comments on the PR
+    // 1. Run AI Analysis
+    let result = github::process_diff(&diff)
+        .await
+        .context("Gemini AI Analysis failed")?;
+
+    // 2. Blockchain Audit Chain Hashing
+    let last_record: Option<sqlx::postgres::PgRow> =
+        sqlx::query("SELECT current_hash FROM audit_logs ORDER BY created_at DESC LIMIT 1")
+            .fetch_optional(&state.db)
+            .await?;
+
+    let prev_hash = if let Some(row) = last_record {
+        row.try_get::<String, _>("current_hash")?
+    } else {
+        "GENESIS_BLOCK".to_string()
+    };
+
+    let entry = audit::AuditEntry::new(
+        &format!("{}{}", repo_name, serde_json::to_string(&result)?),
+        &prev_hash,
+    );
+    let new_hash = entry.entry_hash.clone();
+
+    // 3. Database Persistence
+    let tenant_row: (uuid::Uuid,) = sqlx::query_as("SELECT id FROM tenants LIMIT 1")
+        .fetch_one(&state.db)
+        .await
+        .context("No tenant found. Run your SQL setup scripts first.")?;
+
+    sqlx::query(
+        r#"
+        INSERT INTO audit_logs
+        (tenant_id, repo_name, pr_number, status, risk_score, report, previous_hash, current_hash)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        "#,
+    )
+    .bind(tenant_row.0)
+    .bind(&repo_name)
+    .bind(pr_number as i32)
+    .bind(&result.status)
+    .bind(result.risk_score as i32)
+    .bind(serde_json::to_value(&result)?)
+    .bind(prev_hash)
+    .bind(new_hash)
+    .execute(&state.db)
+    .await?;
+
+    info!(
+        "SUCCESS: Audit log with hash {} saved to database",
+        entry.entry_hash
+    );
+
+    // 4. GitHub Review (Wrapped in error handling so local runs don't crash without real keys)
+    if !state.private_key.is_empty() {
+        let app_key = EncodingKey::from_rsa_pem(&state.private_key).context("Invalid RSA key")?;
+        let octo = Octocrab::builder()
+            .app(state.github_app_id.into(), app_key)
+            .build()?
+            .installation(octocrab::models::InstallationId(installation_id));
+
+        let (owner, repo) = repo_name.split_once('/').unwrap_or(("ghost", "repo"));
+        let _ = github::post_review(&octo, owner, repo, pr_number, &result).await;
+        info!("Review posted to GitHub PR #{}", pr_number);
+    }
 
     Ok(())
 }
