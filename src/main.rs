@@ -56,14 +56,17 @@ async fn main() -> anyhow::Result<()> {
     let database_url = std::env::var("DATABASE_URL")
         .unwrap_or_else(|_| "postgres://localhost/ghosthealth".to_string());
 
-    let db = sqlx::postgres::PgPoolOptions::new()
-        .max_connections(5)
-        .acquire_timeout(std::time::Duration::from_secs(30))
-        .connect(&database_url)
-        .await
-        .context("Failed to connect to PostgreSQL database")?;
+    let db = db::init_db(&database_url).await?;
 
     info!("Database connection established to PostgreSQL");
+
+    // Run Migrations
+    sqlx::migrate!("./migrations")
+        .run(&db)
+        .await
+        .context("Failed to run database migrations")?;
+
+    info!("Database migrations applied successfully");
 
     // 5. GitHub Configuration (with local fallbacks to prevent crashes)
     let webhook_secret = SecretString::new(
@@ -230,7 +233,7 @@ async fn process_pull_request(
     let new_hash = entry.entry_hash.clone();
 
     // 3. Database Persistence
-    let tenant_row: (String,) = sqlx::query_as("SELECT id FROM tenants LIMIT 1")
+    let tenant_row: (uuid::Uuid,) = sqlx::query_as("SELECT id FROM tenants LIMIT 1")
         .fetch_one(&state.db)
         .await
         .context("No tenant found. Run your SQL setup scripts first.")?;
@@ -242,7 +245,7 @@ async fn process_pull_request(
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         "#,
     )
-    .bind(uuid::Uuid::parse_str(&tenant_row.0).context("Invalid tenant ID format")?)
+    .bind(tenant_row.0)
     .bind(&repo_name)
     .bind(pr_number as i32)
     .bind(&result.status)
