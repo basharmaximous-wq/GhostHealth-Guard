@@ -1,6 +1,6 @@
 use dotenvy::dotenv;
 use ghosthealth_guard::*;
-use sqlx::SqlitePool;
+use sqlx::PgPool;
 
 use anyhow::Context;
 use axum::{
@@ -28,7 +28,7 @@ struct AppState {
     webhook_secret: SecretString,
     app_id: u64,
     private_key: Vec<u8>,
-    db: SqlitePool,
+    db: PgPool,
 }
 
 #[tokio::main]
@@ -52,18 +52,18 @@ async fn main() -> anyhow::Result<()> {
 
     info!("Starting GhostHealth-Guard: Local Testing Mode Enabled");
 
-    // 4. DATABASE: Using SQLite for local testing
+    // 4. DATABASE: Using PostgreSQL
     let database_url = std::env::var("DATABASE_URL")
-        .unwrap_or_else(|_| "sqlite:ghosthealth.db".to_string());
+        .unwrap_or_else(|_| "postgres://localhost/ghosthealth".to_string());
 
-    let db = sqlx::sqlite::SqlitePoolOptions::new()
+    let db = sqlx::postgres::PgPoolOptions::new()
         .max_connections(5)
         .acquire_timeout(std::time::Duration::from_secs(30))
         .connect(&database_url)
         .await
-        .context("Failed to connect to SQLite database")?;
+        .context("Failed to connect to PostgreSQL database")?;
 
-    info!("Database connection established to SQLite");
+    info!("Database connection established to PostgreSQL");
 
     // 5. GitHub Configuration (with local fallbacks to prevent crashes)
     let webhook_secret = SecretString::new(
@@ -212,7 +212,7 @@ async fn process_pull_request(
         .context("Gemini AI Analysis failed")?;
 
     // 2. Blockchain Audit Chain Hashing
-    let last_record: Option<sqlx::sqlite::SqliteRow> =
+    let last_record: Option<sqlx::postgres::PgRow> =
         sqlx::query("SELECT current_hash FROM audit_logs ORDER BY created_at DESC LIMIT 1")
             .fetch_optional(&state.db)
             .await?;
@@ -239,10 +239,10 @@ async fn process_pull_request(
         r#"
         INSERT INTO audit_logs
         (tenant_id, repo_name, pr_number, status, risk_score, report, previous_hash, current_hash)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         "#,
     )
-    .bind(tenant_row.0)
+    .bind(uuid::Uuid::parse_str(&tenant_row.0).context("Invalid tenant ID format")?)
     .bind(&repo_name)
     .bind(pr_number as i32)
     .bind(&result.status)
